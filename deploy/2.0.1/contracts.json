@@ -1,0 +1,67 @@
+
+{
+  "version": "2.0.1",
+  "networks": {
+    "mainnet": {
+      "collateralManager": "0x8d0b8e2b5584cE1487317f81Da7d97397eF3e899",
+      "controller": "0xa4F1671d3Aee73C05b552d57f2d16d3cfcBd0217",
+      "vsp": "0x1b40183EFB4Dd766f11bDa7A7c3AD8982e998421",
+      "revenueSplitter": "0x223809E09ec28C28219769C3FF05c790c213152C",
+      "vBetaETH":{
+        "pool":"0x2C361913e2dA663e1898162Ec01497C46eb87AbF",
+        "strategy":{
+          "aaveMaker":"0x25174c74222a62a9a5Aa30e5975da0230f6856B2",
+          "cream": "0xb92d607Dc7DDAAA6a3a213cd0A01c9dD4cE569e6"
+        }
+      },
+      "vBetaUSDC":{
+        "pool":"0x1e86044468b92c310800d4b350e0f83387a7097f",
+        "strategy":{
+          "aaveV2":"0x85228b6387BAb860Eb218089d1d4f0417EF7d3fb"
+        }
+      },
+      "vBetaWBTC": {
+        "pool": "0x74Cc5BC20B0c396dF5680eE4aeB6169A6288a8aF",
+        "strategy": {
+          "compound": "0xb0b473be7b13CDb4AD2563C4c7244486e1fD1481",
+          "aaveMaker": "0x251FE6E78d0da0470ab2060E14CDb8216Fdf5425"
+        }
+      },
+      "VDAI": {
+        "pool": "0xcA0c34A3F35520B9490C1d58b35A19AB64014D80",
+        "strategy": {
+          "compound": "0xC80573C8D53Ea1bBa1ED505BBB537DCd4adb9067"
+        }
+      },
+      "VETH": {
+        "pool": "0x103cc17C2B1586e5Cd9BaD308690bCd0BBe54D5e",
+        "poolRewards": "0x93567318aaBd27E21c52F766d2844Fc6De9Dc738",
+        "strategy": {
+          "aaveMaker": "0x2010741f855d3CF16FD60e9cce14AF6DE9b526ff"
+        }
+      },
+      "VWBTC": {
+        "pool": "0x4B2e76EbBc9f2923d83F5FBDe695D8733db1a17B",
+        "poolRewards": "0x479A8666Ad530af3054209Db74F3C74eCd295f8D",
+        "strategy": {
+          "aave": "0x949424E8ef3A9fB1859e4A2fEA8b891bc4D28385",
+          "aaveMaker": "0xa3F6Ea08d4083095ec4c363d9cBc629b85029490",
+          "compound": "0x040865b75B176278857F459E940b1b8dBF02B62f"
+        }
+      },
+      "VUSDC": {
+        "pool": "0x0C49066C0808Ee8c673553B7cbd99BCC9ABf113d",
+        "poolRewards": "0xd59996055b5E0d154f2851A030E207E0dF0343B0",
+        "strategy": {
+          "aave": "0x3a51F72104fd7c9257730C437B250E99516202Fc"
+        }
+      },
+      "VVSP": {
+        "pool": "0xbA4cFE5741b357FA371b506e5db0774aBFeCf8Fc",
+        "strategy": {
+          "vspStrategy": "0xd5579A994194C142846aBafA5919Fbad0aE32AA2"
+        }
+      }
+    }
+  }
+}

@@ -7,7 +7,7 @@ Please read and get familiar with [Vesper](https://docs.vesper.finance/). This r
 1. Install 
 
    ```sh
-   git clone --recursive https://github.com/bloqpriv/vesper-pools.git
+   git clone --recursive https://github.com/vesperfi/vesper-pools.git
    cd vesper-pools
    npm install 
    npm run truffle compile

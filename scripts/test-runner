@@ -1,0 +1,15 @@
+#!/bin/bash
+
+set -e
+
+# shellcheck disable=SC1091
+[ -f .env ] && . .env
+
+[ ! -d node_modules ] && npm ci
+
+scripts/fork-chain --quiet
+
+testFile=$1
+echo "> truffle test ${testFile}"
+
+npx truffle test $testFile

@@ -1,0 +1,12 @@
+{
+  "printWidth": 100,
+  "overrides": [
+    {
+      "files": ["test/*.js", "test/**/*.js"],
+      "options": {
+        "printWidth": 120
+      }
+    }
+  ],
+  "bracketSpacing": false
+}

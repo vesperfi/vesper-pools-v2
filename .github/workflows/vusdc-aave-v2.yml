@@ -1,0 +1,24 @@
+name: vUSDC with AaveV2Strategy
+on: [pull_request]
+
+jobs:
+  vusdc-aaveV2-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [12]
+    env:
+      NODE_URL: ${{secrets.NODE_URL}}
+    steps:
+      - uses: actions/checkout@v2.3.1
+        with:
+          token: ${{secrets.VESPER_CI_TOKEN}}
+          submodules: true
+      - name: Use Node.js
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Run npm install with node v${{ matrix.node }}
+        run: npm install
+      - name: Running tests of vUSDC pool with AaveV2Strategy
+        run: npm test "test/vusdc-aave-v2.js"

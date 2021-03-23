@@ -1,0 +1,29 @@
+
+{
+  "version": "1.0.3",
+  "networks": {
+    "mainnet": {
+      "collateralManager": "0x8d0b8e2b5584cE1487317f81Da7d97397eF3e899",
+      "controller": "0xa4F1671d3Aee73C05b552d57f2d16d3cfcBd0217",
+      "VETH": {
+        "pool": "0x103cc17C2B1586e5Cd9BaD308690bCd0BBe54D5e",
+        "strategy": {
+          "aaveMaker": "0xd75FA26BF6226D64cbC46f6d4e106bCFb43F1670"
+        }
+      },
+      "VWBTC": {
+        "pool": "0x4B2e76EbBc9f2923d83F5FBDe695D8733db1a17B",
+        "strategy": {
+          "aave": "0x949424E8ef3A9fB1859e4A2fEA8b891bc4D28385",
+          "aaveMaker": "0xa3F6Ea08d4083095ec4c363d9cBc629b85029490"
+        }
+      },
+      "VUSDC": {
+        "pool": "0x0C49066C0808Ee8c673553B7cbd99BCC9ABf113d",
+        "strategy": {
+          "aave": "0x3a51F72104fd7c9257730C437B250E99516202Fc"
+        }
+      }
+    }
+  }
+}

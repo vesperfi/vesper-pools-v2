@@ -1,0 +1,26 @@
+name: VSP token and vVSP Pool
+on: [pull_request]
+
+jobs:
+  vsp-and-vvsp-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [12]
+    env:
+      NODE_URL: ${{secrets.NODE_URL}}
+    steps:
+      - uses: actions/checkout@v2.3.1
+        with:
+          token: ${{secrets.VESPER_CI_TOKEN}}
+          submodules: true
+      - name: Use Node.js
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Run npm install with node v${{ matrix.node }}
+        run: npm install
+      - name: Running VSP token tests
+        run: npm test "test/vsp.js"
+      - name: Running vVSP pool tests
+        run: npm test "test/vvsp-eth.js"

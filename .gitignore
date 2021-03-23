@@ -1,0 +1,11 @@
+.DS_STORE
+node_modules
+build
+.env
+.secret_info
+config/local.json
+
+# Solidity coverage
+coverage
+coverage.json
+.coverage*

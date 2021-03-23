@@ -1,0 +1,41 @@
+{
+  "extends": ["bloq"],
+  "overrides": [
+    {
+      "files": ["test/*.js", "test/*/*.js"],
+      "extends": ["bloq/mocha"],
+      "globals": {
+        "artifacts": false,
+        "contract": false,
+        "beforeEach": false,
+        "before": false,
+        "it": false,
+        "web3": false,
+        "describe": false
+      },
+      "rules":{
+        "mocha/no-top-level-hooks": "off",
+        "mocha/no-hooks-for-single-case": "off"
+      }
+    },
+    {
+      "files": ["migrations/*.js"],
+      "globals": {
+        "artifacts": "readonly"
+      }
+    }
+  ],
+  "root": true,
+  "rules": {
+    "promise/catch-or-return": [
+      "error",
+      {
+        "allowFinally": true,
+        "allowThen": true
+      }
+    ],
+    "jsdoc/require-jsdoc": "off",
+    "max-len": ["error", { "code": 120 }],
+    "semi": ["error", "never"]
+  }
+}
