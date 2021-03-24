@@ -331,7 +331,7 @@ async function shouldBehaveLikePool(poolName, collateralName, pTokenName, accoun
         await executeIfExist(providerToken.exchangeRateCurrent)
 
         // Another deposit
-        await deposit(20, user2)
+        await deposit(200, user2)
         await pool.rebalance()
         await executeIfExist(providerToken.rebalance)
         const vPoolBalanceFC2 = await pool.balanceOf(feeCollector)
@@ -354,7 +354,7 @@ async function shouldBehaveLikePool(poolName, collateralName, pTokenName, accoun
         await executeIfExist(providerToken.exchangeRateCurrent)
         await executeIfExist(providerToken.rebalance)
         // Another deposit
-        await deposit(20, user2)
+        await deposit(200, user2)
         await pool.rebalance()
         let vPoolBalanceFC = await pool.balanceOf(feeCollector)
         expect(vPoolBalanceFC.toString()).to.eq('0', 'Collected fee should be zero')

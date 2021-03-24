@@ -69,6 +69,7 @@ function shouldBehaveLikeStrategy(poolName, collateralName, accounts) {
         await comptroller.claimComp(strategy.address, [providerToken.address], {from: user4})
         let compBalance = await comp.balanceOf(strategy.address)
         expect(compBalance).to.be.bignumber.gt('0', 'Should earn COMP')
+        await swapper.swapEthForToken(10, COMP_ADDRESS, user4, strategy.address)
         await pool.rebalance()
         const tokensHere = await pool.tokensHere()
         compBalance = await comp.balanceOf(strategy.address)
@@ -91,7 +92,7 @@ function shouldBehaveLikeStrategy(poolName, collateralName, accounts) {
 
     describe(`${poolName}:: DepositAll in CompoundStrategy`, function () {
       it(`Should deposit ${collateralName} and call depositAll() in Strategy`, async function () {
-        const depositAmount = await deposit(pool, collateralToken, 2, user3)
+        const depositAmount = await deposit(pool, collateralToken, 200, user3)
         const tokensHere = await pool.tokensHere()
         await providerToken.exchangeRateCurrent()
         await strategy.depositAll()
@@ -105,8 +106,7 @@ function shouldBehaveLikeStrategy(poolName, collateralName, accounts) {
       })
 
       it('Should increase pending fee and share price after withdraw', async function () {
-        await deposit(pool, collateralToken, 2, user1)
-
+        await deposit(pool, collateralToken, 400, user1)
         let fee = await strategy.pendingFee()
         expect(fee).to.be.bignumber.equal('0', 'fee should be zero')
         await strategy.depositAll()
@@ -115,7 +115,7 @@ function shouldBehaveLikeStrategy(poolName, collateralName, accounts) {
 
         const sharePrice1 = await pool.getPricePerShare()
         // Time travel to trigger some earning
-        await mineBlocks(25)
+        await mineBlocks(200)
         await deposit(pool, collateralToken, 2, user1)
         await strategy.depositAll()
         fee = await strategy.pendingFee()
@@ -124,7 +124,7 @@ function shouldBehaveLikeStrategy(poolName, collateralName, accounts) {
         let sharePrice2 = await pool.getPricePerShare()
         expect(sharePrice2).to.be.bignumber.gt(sharePrice1, 'share price should increase')
         // Time travel to trigger some earning
-        await mineBlocks(25)
+        await mineBlocks(200)
         const vPoolBalance = await pool.balanceOf(user1)
         await pool.withdraw(vPoolBalance, {from: user1})
 
@@ -142,7 +142,7 @@ function shouldBehaveLikeStrategy(poolName, collateralName, accounts) {
 
     describe(`${poolName}:: Interest fee via CompoundStrategy`, function () {
       it('Should handle interest fee correctly after withdraw', async function () {
-        await deposit(pool, collateralToken, 2, user2)
+        await deposit(pool, collateralToken, 200, user2)
         await pool.rebalance()
 
         const pricePerShare = await pool.getPricePerShare()
@@ -218,9 +218,10 @@ function shouldBehaveLikeStrategy(poolName, collateralName, accounts) {
       })
 
       it('Should rebalance after withdrawAll() and adding new strtegy', async function () {
-        await deposit(pool, collateralToken, 2, user3)
+        await deposit(pool, collateralToken, 200, user3)
         await pool.rebalance()
-        time.increase(60 * 60)
+        await mineBlocks(25)
+        await providerToken.exchangeRateCurrent()
         const totalLockedBefore = await strategy.totalLocked()
 
         const target = strategy.address
