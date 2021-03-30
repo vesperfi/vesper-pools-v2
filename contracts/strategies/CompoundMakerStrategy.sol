@@ -85,7 +85,7 @@ abstract contract CompoundMakerStrategy is MakerStrategy {
     }
 
     /// @notice Claim rewardToken from lender and convert it into DAI
-    function _claimReward() public {
+    function _claimReward() internal {
         address[] memory _markets = new address[](1);
         _markets[0] = address(cToken);
         comptroller.claimComp(address(this), _markets);
