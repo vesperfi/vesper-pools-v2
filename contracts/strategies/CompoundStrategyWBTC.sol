@@ -8,7 +8,7 @@ import "../interfaces/token/IToken.sol";
 //solhint-disable no-empty-blocks
 contract CompoundStrategyWBTC is CompoundStrategy {
     string public constant NAME = "Strategy-Compound-WBTC";
-    string public constant VERSION = "2.0.2";
+    string public constant VERSION = "2.0.3";
 
     constructor(address _controller, address _pool)
         public

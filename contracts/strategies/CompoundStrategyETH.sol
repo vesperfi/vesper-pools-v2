@@ -8,7 +8,7 @@ import "../interfaces/token/IToken.sol";
 //solhint-disable no-empty-blocks
 contract CompoundStrategyETH is CompoundStrategy {
     string public constant NAME = "Strategy-Compound-ETH";
-    string public constant VERSION = "2.0.2";
+    string public constant VERSION = "2.0.3";
 
     constructor(address _controller, address _pool)
         public
