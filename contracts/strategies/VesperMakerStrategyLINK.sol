@@ -7,7 +7,7 @@ import "./VesperMakerStrategy.sol";
 //solhint-disable no-empty-blocks
 contract VesperMakerStrategyLINK is VesperMakerStrategy {
     string public constant NAME = "Strategy-Vesper-Maker-LINK";
-    string public constant VERSION = "2.0.3";
+    string public constant VERSION = "2.0.4";
 
     constructor(
         address _controller,
