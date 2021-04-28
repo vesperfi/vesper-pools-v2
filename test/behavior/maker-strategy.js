@@ -3,7 +3,7 @@
 const swapper = require('../utils/tokenSwapper')
 const {deposit} = require('../utils/poolOps')
 const {expect} = require('chai')
-const {BN, time} = require('@openzeppelin/test-helpers')
+const {BN, time, constants} = require('@openzeppelin/test-helpers')
 const {updateBalancingFactor} = require('../utils/setupHelper')
 const DECIMAL = new BN('1000000000000000000')
 const WAT = new BN('10000000000000000')
@@ -124,9 +124,13 @@ function shouldBehaveLikeStrategy(poolName, collateralName, pTokenName, accounts
         await pool.withdraw(withdrawAmount, {from: user})
         return Promise.all([strategy.highWater(), cm.getVaultInfo(vaultNum), collateralToken.balanceOf(user)]).then(
           function ([highWater, vaultInfo, collateralBalance]) {
-            expect(vaultInfo.collateralRatio).to.be.bignumber.eq(highWater, 'Collateral ratio is wrong')
             expect(vaultInfo.daiDebt).to.be.bignumber.lt(vaultInfoBefore.daiDebt, 'Dai debt should decrease')
             expect(collateralBalance).to.be.bignumber.gt(collateralBalanceBefore, `${collateralName} balance is wrong`)
+            if (vaultInfo.daiDebt.toString() === '0') {
+              expect(vaultInfo.collateralRatio).to.be.bignumber.eq(constants.MAX_UINT256, 'Collateral ratio is wrong')
+            } else {
+              expect(vaultInfo.collateralRatio).to.be.bignumber.eq(highWater, 'Collateral ratio is wrong')
+            }
           }
         )
       })
@@ -277,14 +281,6 @@ function shouldBehaveLikeStrategy(poolName, collateralName, pTokenName, accounts
         expect(vInfo2.collateralLocked).to.be.bignumber.lte(vInfo.collateralLocked, 'Collateral locked is wrong')
         expect(vInfo2.daiDebt).to.be.bignumber.lte(vInfo.daiDebt, 'Dai debt is wrong')
         expect(vInfo2.collateralRatio).to.be.bignumber.gt(lowWater, `${poolName} pool is still under water`)
-      })
-
-      it('Should resolve underwater and withdraw when withdraw() is called', async function () {
-        expect(await strategy.isUnderwater(), `${poolName} pool should be underwater`).to.be.true
-
-        const withdrawAmount = await pool.balanceOf(user3)
-        await pool.withdraw(withdrawAmount, {from: user3})
-        expect(await strategy.isUnderwater(), `${poolName} pool should be above water`).to.be.false
       })
     })
 

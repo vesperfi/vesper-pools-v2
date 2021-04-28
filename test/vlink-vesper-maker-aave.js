@@ -20,6 +20,7 @@ contract('VLINK Pool', function (accounts) {
   const [, user1] = accounts
 
   beforeEach(async function () {
+    this.accounts = accounts
     await setupVPool(vDaiPoolObj, {
       controller: Controller,
       pool: VDAI,

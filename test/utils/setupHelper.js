@@ -22,7 +22,7 @@ async function addGemJoin(controller, target, gemJoinArray) {
   await controller.executeTransaction(target, value, methodSignature, data)
 }
 
-async function addFeeWhiteList(controller, target, address) {
+async function addInList(controller, target, address) {
   const methodSignature = 'add(address)'
   const data = web3.eth.abi.encodeParameter('address', address)
   await controller.executeTransaction(target, 0, methodSignature, data)
@@ -51,6 +51,17 @@ async function updateBalancingFactor(controller, target, factors) {
   const methodSignature = 'updateBalancingFactor(uint256,uint256)'
   const data = web3.eth.abi.encodeParameters(['uint256', 'uint256'], factors)
   await controller.executeTransaction(target, 0, methodSignature, data)
+}
+
+/**
+ *  Create keeper list in maker strategies
+ *
+ * @param {object} controller Controller contract instance
+ * @param {string} target Aave-Maker Strategy contract address
+ */
+async function createKeeperList(controller, target) {
+  const methodSignature = 'createKeeperList()'
+  await controller.executeTransaction(target, 0, methodSignature, '0x')
 }
 
 /**
@@ -94,7 +105,7 @@ async function createVesperMakerStrategy(obj, collateralManager, strategy, vPool
     approveToken(obj.controller, obj.strategy.address),
   ])
   const target = await vPool.feeWhiteList()
-  await addFeeWhiteList(obj.controller, target, obj.strategy.address)
+  await addInList(obj.controller, target, obj.strategy.address)
 }
 
 /**
@@ -147,6 +158,15 @@ async function setupVPool(obj, poolData) {
     await createVesperMakerStrategy(obj, collateralManager, strategy, vPool)
   } else {
     await createStrategy(obj, strategy)
+  }
+  if (strategyType.includes('Maker')) {
+    await createKeeperList(obj.controller, obj.strategy.address)
+    const target = await obj.strategy.keepers()
+    await addInList(obj.controller, target, obj.accounts[0])
+    // FIXME Many of the tests are calling pool.rebalance(), and those will fail
+    // if we do not add pool as keeper. In near future we want to remove pool 
+    // from keeper and fix those tests. NOTE: DO NOT ADD POOL AS KEEPER IN PROD
+    await addInList(obj.controller, target, obj.pool.address)
   }
   await Promise.all([
     obj.controller.updateStrategy(obj.pool.address, obj.strategy.address),

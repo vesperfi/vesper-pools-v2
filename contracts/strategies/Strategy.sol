@@ -9,6 +9,8 @@ import "../Pausable.sol";
 import "../interfaces/vesper/IController.sol";
 import "../interfaces/vesper/IStrategy.sol";
 import "../interfaces/vesper/IVesperPool.sol";
+import "../../sol-address-list/contracts/interfaces/IAddressListExt.sol";
+import "../../sol-address-list/contracts/interfaces/IAddressListFactory.sol";
 
 abstract contract Strategy is IStrategy, Pausable {
     using SafeERC20 for IERC20;
@@ -18,6 +20,7 @@ abstract contract Strategy is IStrategy, Pausable {
     IERC20 public immutable collateralToken;
     address public immutable receiptToken;
     address public immutable override pool;
+    IAddressListExt public keepers;
     address internal constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     address internal constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     uint256 internal constant MAX_UINT_VALUE = uint256(-1);
@@ -53,6 +56,11 @@ abstract contract Strategy is IStrategy, Pausable {
         _;
     }
 
+    modifier onlyKeeper() {
+        require(keepers.contains(_msgSender()), "caller-is-not-keeper");
+        _;
+    }
+
     modifier onlyPool() {
         require(_msgSender() == pool, "caller-is-not-the-pool");
         _;
@@ -75,6 +83,20 @@ abstract contract Strategy is IStrategy, Pausable {
     /// @dev Reset approval of all required tokens
     function resetApproval() external onlyController {
         _approveToken(0);
+    }
+
+    /**
+     * @notice Create keeper list
+     * @dev Create keeper list
+     * NOTE: Any function with onlyKeeper modifier will not work until this function is called.
+     * NOTE: Due to gas constraint this function cannot be called in constructor.
+     */
+    function createKeeperList() external onlyController {
+        require(address(keepers) == address(0), "keeper-list-already-created");
+        IAddressListFactory factory =
+            IAddressListFactory(0xD57b41649f822C51a73C44Ba0B3da4A880aF0029);
+        keepers = IAddressListExt(factory.createList());
+        keepers.grantRole(keccak256("LIST_ADMIN"), _msgSender());
     }
 
     /**
@@ -115,7 +137,7 @@ abstract contract Strategy is IStrategy, Pausable {
      * @dev sweep given token to vesper pool
      * @param _fromToken token address to sweep
      */
-    function sweepErc20(address _fromToken) external {
+    function sweepErc20(address _fromToken) external onlyKeeper {
         require(!isReservedToken(_fromToken), "not-allowed-to-sweep");
         if (_fromToken == ETH) {
             payable(pool).transfer(address(this).balance);
