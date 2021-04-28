@@ -1,0 +1,28 @@
+name: Governor
+on: [pull_request]
+
+jobs:
+  governor:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [12]
+    steps:
+      - uses: actions/checkout@v2.3.1
+        with:
+          submodules: true
+      - run: cat "${GITHUB_WORKSPACE}/.github/env.properties" >> $GITHUB_ENV
+      - name: Use Node.js
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Run npm install with node v${{ matrix.node }}
+        run: npm install
+      - name: Running Governor tests
+        env:
+          NODE_URL: ${{env.NODE_URL}}
+        run: npm test "test/governor-vsp.js"
+      - name: Running multi transfer tests
+        env:
+          NODE_URL: ${{env.NODE_URL}}
+        run: npm test "test/multitransfer.js"                

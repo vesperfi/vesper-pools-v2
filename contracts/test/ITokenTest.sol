@@ -8,5 +8,5 @@ interface TokenLikeTest is IERC20 {
 
     function withdraw(uint256) external;
 
-    function decimals() external returns (uint256);
+    function decimals() external view returns (uint256);
 }

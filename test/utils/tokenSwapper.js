@@ -1,34 +1,32 @@
 'use strict'
 
-const { assert } = require('chai')
-const BN = require('bn.js')
-const IUniswapRouterTest = artifacts.require('IUniswapRouterTest')
-const ERC20 = artifacts.require('ERC20')
-const DECIMAL = new BN('1000000000000000000')
-const uniswapAddress = '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D'
-const WETH = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'
+const {expect} = require('chai')
+const {ethers} = require('hardhat')
+const {BigNumber} = require('ethers')
+const DECIMAL = BigNumber.from('1000000000000000000')
+const address = require('../../helper/ethereum/address')
+const SUSHI_ROUTER = address.SUSHI_ROUTER
+const NATIVE_TOKEN = address.NATIVE_TOKEN
 /**
  * Swap ETH into given token
  *
  * @param {string} ethAmount ETH amount, it is in ETH i.e. 2 for 2 ETH
  * @param {string} toToken Address of output token
- * @param {string} caller Address of caller, who will pay for ETH
+ * @param {object} caller caller with signer, who will pay for ETH
  * @param {string} [receiver] Address of token receiver
- * @returns {string} Output amount of token swap
+ * @returns {Promise<BigNumber>} Output amount of token swap
  */
 async function swapEthForToken(ethAmount, toToken, caller, receiver) {
-    const toAddress = receiver || caller
-    const amountIn = new BN(ethAmount).mul(DECIMAL).toString()
-    const uni = await IUniswapRouterTest.at(uniswapAddress)
-    const block = await web3.eth.getBlock('latest')
-    const path = [WETH, toToken]
-    const token = await ERC20.at(toToken)
-    await uni.swapExactETHForTokens(1, path, toAddress, block.timestamp + 60,
-        { value: amountIn, from: caller })
-    const tokenBalance = await token.balanceOf(toAddress)
-    assert(tokenBalance.gt(new BN('0')), 'Token balance is not correct')
-    return tokenBalance
+  const toAddress = receiver || caller.address
+  const amountIn = BigNumber.from(ethAmount).mul(DECIMAL).toString()
+  const uni = await ethers.getContractAt('IUniswapRouterTest', SUSHI_ROUTER)
+  const block = await ethers.provider.getBlock()
+  const path = [NATIVE_TOKEN, toToken]
+  const token = await ethers.getContractAt('ERC20', toToken)
+  await uni.connect(caller).swapExactETHForTokens(1, path, toAddress, block.timestamp + 60, {value: amountIn})
+  const tokenBalance = await token.balanceOf(toAddress)
+  expect(tokenBalance).to.be.gt('0', 'Token balance is not correct')
+  return tokenBalance
 }
 
-
-module.exports = { swapEthForToken }
+module.exports = {swapEthForToken}

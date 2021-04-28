@@ -11,6 +11,6 @@ contract AaveV2StrategyDAI is AaveV2Strategy {
 
     constructor(address _controller, address _pool)
         public
-        AaveV2Strategy(_controller, _pool, 0x6B175474E89094C44Da98b954EedeAC495271d0F)
+        AaveV2Strategy(_controller, _pool, 0x028171bCA77440897B824Ca71D1c56caC55b68A3) //aDAI
     {}
 }

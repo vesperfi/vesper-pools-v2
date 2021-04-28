@@ -121,7 +121,11 @@ contract Controller is Owned {
         founderFee = _founderFee;
     }
 
-    function updateInterestFee(address _pool, uint256 _interestFee) external onlyOwner {
+    function updateInterestFee(address _pool, uint256 _interestFee)
+        external
+        onlyOwner
+        validPool(_pool)
+    {
         require(_interestFee <= 1e18, "Fee limit reached");
         require(feeCollector[_pool] != address(0), "FeeCollector not set");
         interestFee[_pool] = _interestFee;

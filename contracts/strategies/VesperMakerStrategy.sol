@@ -37,10 +37,10 @@ abstract contract VesperMakerStrategy is MakerStrategy {
         IVesperPool(receiptToken).withdrawByStrategy(vAmount);
     }
 
-    function _withdrawExcessDaiFromLender(uint256 _base) internal override {
-        uint256 balance = _getDaiBalance();
-        if (balance > _base) {
-            _withdrawDaiFromLender(balance.sub(_base));
-        }
-    }
+    /// dev these functions are not implemented for this strategy
+    // solhint-disable-next-line no-empty-blocks
+    function _migrateIn() internal override {}
+
+    // solhint-disable-next-line no-empty-blocks
+    function _migrateOut() internal override {}
 }

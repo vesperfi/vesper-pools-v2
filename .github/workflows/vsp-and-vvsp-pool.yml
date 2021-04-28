@@ -26,3 +26,7 @@ jobs:
         env:
           NODE_URL: ${{env.NODE_URL}}
         run: npm test "test/vvsp-eth.js"
+      - name: Running vVSP auctions tests
+        env:
+          NODE_URL: ${{env.NODE_URL}}
+        run: npm test "test/vvsp-auctions.js"        

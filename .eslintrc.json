@@ -13,15 +13,21 @@
         "web3": false,
         "describe": false
       },
-      "rules":{
+      "rules": {
         "mocha/no-top-level-hooks": "off",
-        "mocha/no-hooks-for-single-case": "off"
+        "mocha/no-hooks-for-single-case": "off",
+        "mocha/no-exports": "off",
+        "mocha/no-setup-in-describe": "off"
       }
     },
     {
-      "files": ["migrations/*.js"],
+      "files": ["hardhat*", "tasks/*"],
       "globals": {
-        "artifacts": "readonly"
+        "ethers": false,
+        "hre": false,
+        "run": false,
+        "task": false,
+        "types": false
       }
     }
   ],
@@ -35,7 +41,8 @@
       }
     ],
     "jsdoc/require-jsdoc": "off",
-    "max-len": ["error", { "code": 120 }],
-    "semi": ["error", "never"]
+    "max-len": ["error", {"code": 120}],
+    "semi": ["error", "never"],
+    "quotes": ["error", "single"]
   }
 }

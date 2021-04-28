@@ -76,29 +76,34 @@ contract Ownable is Context {
 
 /**
  * @dev Contract module extends Ownable and provide a way for safe transfer ownership.
- * New owner has to call acceptOwnership in order to complete ownership trasnfer.
+ * Proposed owner has to call acceptOwnership in order to complete ownership trasnfer.
  */
 contract Owned is Ownable {
-    address private _newOwner;
+    address private _proposedOwner;
 
     /**
-     * @dev Initiate transfer ownership of the contract to a new account (`newOwner`).
+     * @dev Initiate transfer ownership of the contract to a new account (`proposedOwner`).
      * Can only be called by the current owner. Current owner will still be owner until
-     * new owner accept ownership.
-     * @param newOwner new owner address
+     * proposed owner accept ownership.
+     * @param proposedOwner proposed owner address
      */
-    function transferOwnership(address newOwner) public override onlyOwner {
-        require(newOwner != address(0), "New owner is the zero address");
-        _newOwner = newOwner;
+    function transferOwnership(address proposedOwner) public override onlyOwner {
+        //solhint-disable-next-line reason-string
+        require(proposedOwner != address(0), "Proposed owner is the zero address");
+        _proposedOwner = proposedOwner;
     }
 
-    /**
-     * @dev Allows new owner to accept ownership of the contract.
-     */
+    /// @dev Allows proposed owner to accept ownership of the contract.
     function acceptOwnership() public {
-        require(msg.sender == _newOwner, "Caller is not the new owner");
-        emit OwnershipTransferred(_owner, _newOwner);
-        _owner = _newOwner;
-        _newOwner = address(0);
+        require(msg.sender == _proposedOwner, "Caller is not the proposed owner");
+        emit OwnershipTransferred(_owner, _proposedOwner);
+        _owner = _proposedOwner;
+        _proposedOwner = address(0);
+    }
+
+    function renounceOwnership() public override onlyOwner {
+        emit OwnershipTransferred(_owner, address(0));
+        _owner = address(0);
+        _proposedOwner = address(0);
     }
 }

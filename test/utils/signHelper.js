@@ -1,27 +1,22 @@
 'use strict'
 
-const {ecsign} = require('ethereumjs-util')
-const {hdkey} = require('ethereumjs-wallet')
-const {hexlify, keccak256, defaultAbiCoder, toUtf8Bytes, solidityPack} = require('ethers').utils
-const bip39 = require('bip39')
+const {ethers} = require('hardhat')
+const {keccak256, defaultAbiCoder, toUtf8Bytes, solidityPack, SigningKey} = ethers.utils
+const Wallet = ethers.Wallet
 
 const PERMIT_TYPEHASH = keccak256(
   toUtf8Bytes('Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)')
 )
 
-const DELEGATION_TYPEHASH = keccak256(
-  toUtf8Bytes('Delegation(address delegatee,uint256 nonce,uint256 expiry)')
-)
+const DELEGATION_TYPEHASH = keccak256(toUtf8Bytes('Delegation(address delegatee,uint256 nonce,uint256 expiry)'))
 
 async function getAccountData(mnemonic) {
-  const seed = await bip39.mnemonicToSeed(mnemonic)
-  const hdk = hdkey.fromMasterSeed(seed)
-  const addrNode = hdk.derivePath("m/44'/60'/0'/0/0")
-  const owner = addrNode.getWallet().getAddressString()
-  const privateKey = addrNode.getWallet().getPrivateKey()
+  const wallet = Wallet.fromMnemonic(mnemonic)
+  const signingKey = new SigningKey(wallet.privateKey)
+  const owner = wallet.address
   return {
     owner,
-    privateKey,
+    signingKey,
   }
 }
 
@@ -30,14 +25,10 @@ function getDomainSeparator(name, tokenAddress) {
     defaultAbiCoder.encode(
       ['bytes32', 'bytes32', 'bytes32', 'uint256', 'address'],
       [
-        keccak256(
-          toUtf8Bytes(
-            'EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)'
-          )
-        ),
+        keccak256(toUtf8Bytes('EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)')),
         keccak256(toUtf8Bytes(name)),
         keccak256(toUtf8Bytes('1')),
-        1,
+        ethers.provider._network.chainId,
         tokenAddress,
       ]
     )
@@ -87,38 +78,31 @@ async function getDelegatelDigest(token, delegatee, nonce, deadline) {
 }
 
 async function getPermitData(token, amount, ownerMnemonic, spender) {
-  const {owner, privateKey} = await getAccountData(ownerMnemonic)
+  const {owner, signingKey} = await getAccountData(ownerMnemonic)
   const nonce = await token.nonces(owner)
-  const block = await web3.eth.getBlock('latest')
+  const block = await ethers.provider.getBlock()
   const deadline = block.timestamp + 120
   const digest = await getPermitlDigest(token, {owner, spender, value: amount}, nonce, deadline)
-  const {v, r, s} = ecsign(Buffer.from(digest.slice(2), 'hex'), privateKey)
+  const {v, r, s} = signingKey.signDigest(digest)
   return {
     owner,
+    signingKey,
     deadline,
-    sign: {
-      v,
-      r: hexlify(r),
-      s: hexlify(s),
-    },
+    sign: {v, r, s},
   }
 }
 
 async function getDelegateData(token, ownerMnemonic, delegatee) {
-  const {owner, privateKey} = await getAccountData(ownerMnemonic)
+  const {owner, signingKey} = await getAccountData(ownerMnemonic)
   const nonce = await token.nonces(owner)
-  const block = await web3.eth.getBlock('latest')
+  const block = await ethers.provider.getBlock()
   const deadline = block.timestamp + 120
   const digest = await getDelegatelDigest(token, delegatee, nonce, deadline)
-  const {v, r, s} = ecsign(Buffer.from(digest.slice(2), 'hex'), privateKey)
+  const {v, r, s} = signingKey.signDigest(digest)
   return {
     deadline,
     nonce,
-    sign: {
-      v,
-      r: hexlify(r),
-      s: hexlify(s),
-    },
+    sign: {v, r, s},
   }
 }
 

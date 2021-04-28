@@ -2,7 +2,9 @@
 
 pragma solidity 0.6.12;
 
-interface CToken {
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+interface CToken is IERC20 {
     function accrueInterest() external returns (uint256);
 
     function balanceOfUnderlying(address owner) external returns (uint256);
@@ -18,16 +20,6 @@ interface CToken {
     function redeem(uint256 redeemTokens) external returns (uint256);
 
     function redeemUnderlying(uint256 redeemAmount) external returns (uint256);
-
-    function transfer(address user, uint256 amount) external returns (bool);
-
-    function transferFrom(
-        address owner,
-        address user,
-        uint256 amount
-    ) external returns (bool);
-
-    function balanceOf(address owner) external view returns (uint256);
 }
 
 interface Comptroller {

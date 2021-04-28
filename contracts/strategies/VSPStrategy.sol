@@ -7,8 +7,8 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "../Pausable.sol";
 import "../interfaces/vesper/IController.sol";
-import "../interfaces/uniswap/IUniswapV2Router02.sol";
 import "../interfaces/vesper/IVesperPool.sol";
+import "../interfaces/bloq/ISwapManager.sol";
 import "../../sol-address-list/contracts/interfaces/IAddressListExt.sol";
 import "../../sol-address-list/contracts/interfaces/IAddressListFactory.sol";
 
@@ -20,12 +20,15 @@ contract VSPStrategy is Pausable {
     IController public immutable controller;
     IVesperPool public immutable vvsp;
     IAddressListExt public immutable keepers;
+    ISwapManager public swapManager = ISwapManager(0xe382d9f2394A359B01006faa8A1864b8a60d2710);
     address internal constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     uint256 public nextPoolIdx;
     address[] public pools;
     uint256[] public liquidationLimit;
     string public constant NAME = "Strategy-VSP";
-    string public constant VERSION = "2.0.2";
+    string public constant VERSION = "2.0.3";
+
+    event UpdatedSwapManager(address indexed previousSwapManager, address indexed newSwapManager);
 
     constructor(address _controller, address _vvsp) public {
         vvsp = IVesperPool(_vvsp);
@@ -53,6 +56,17 @@ contract VSPStrategy is Pausable {
 
     function unpause() external onlyController {
         _unpause();
+    }
+
+    /**
+     * @notice Update swap manager address
+     * @param _swapManager swap manager address
+     */
+    function updateSwapManager(address _swapManager) external onlyController {
+        require(_swapManager != address(0), "sm-address-is-zero");
+        require(_swapManager != address(swapManager), "sm-is-same");
+        emit UpdatedSwapManager(address(swapManager), _swapManager);
+        swapManager = ISwapManager(_swapManager);
     }
 
     function updateLiquidationQueue(address[] calldata _pools, uint256[] calldata _limit)
@@ -111,28 +125,18 @@ contract VSPStrategy is Pausable {
     function _rebalanceEarned(IVesperPool _poolToken, uint256 _amt) internal {
         IERC20(address(_poolToken)).safeTransferFrom(address(vvsp), address(this), _amt);
         _poolToken.withdrawByStrategy(_amt);
-        IUniswapV2Router02 uniswapRouter = IUniswapV2Router02(controller.uniswapRouter());
         IERC20 from = IERC20(_poolToken.token());
         IERC20 vsp = IERC20(vvsp.token());
-
-        address[] memory path;
-
-        if (address(from) == WETH) {
-            path = new address[](2);
-            path[0] = address(from);
-            path[1] = address(vsp);
-        } else {
-            path = new address[](3);
-            path[0] = address(from);
-            path[1] = address(WETH);
-            path[2] = address(vsp);
-        }
-        uint256 amountOut =
-            uniswapRouter.getAmountsOut(from.balanceOf(address(this)), path)[path.length - 1];
+        (address[] memory path, uint256 amountOut, uint256 rIdx) =
+            swapManager.bestOutputFixedInput(
+                address(from),
+                address(vsp),
+                from.balanceOf(address(this))
+            );
         if (amountOut != 0) {
-            from.safeApprove(address(uniswapRouter), 0);
-            from.safeApprove(address(uniswapRouter), from.balanceOf(address(this)));
-            uniswapRouter.swapExactTokensForTokens(
+            from.safeApprove(address(swapManager.ROUTERS(rIdx)), 0);
+            from.safeApprove(address(swapManager.ROUTERS(rIdx)), from.balanceOf(address(this)));
+            swapManager.ROUTERS(rIdx).swapExactTokensForTokens(
                 from.balanceOf(address(this)),
                 1,
                 path,
