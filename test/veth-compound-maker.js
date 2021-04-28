@@ -23,6 +23,7 @@ contract('VETH Pool with CompoundMakerStrategy', function (accounts) {
   let pool, controller, strategy, collateralToken, providerToken
   const [, user1, user2, user3, user4, user5] = accounts
   beforeEach(async function () {
+    this.accounts = accounts
     await setupVPool(this, {
       controller: Controller,
       pool: VETH,

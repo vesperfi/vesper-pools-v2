@@ -53,15 +53,11 @@ abstract contract MakerStrategy is Strategy {
 
     /**
      * @dev Called during withdrawal process.
-     * Withdraw is not allowed if pool in underwater.
-     * If pool is underwater, calling resurface() will bring pool above water.
-     * It will impact share price in pool and that's why it has to be called before withdraw.
+     * Initial plan was to not allowed withdraw if pool in underwater. BUT as 1 of
+     * audit suggested we should not use resurface during withdraw, hence removed logic.
      */
-    function beforeWithdraw() external override onlyPool {
-        if (isUnderwater()) {
-            _resurface();
-        }
-    }
+    //solhint-disable-next-line no-empty-blocks
+    function beforeWithdraw() external override onlyPool {}
 
     /**
      * @dev Rebalance earning and withdraw all collateral.
@@ -76,7 +72,7 @@ abstract contract MakerStrategy is Strategy {
      * @dev Wrapper function for rebalanceEarned and rebalanceCollateral
      * Anyone can call it except when paused.
      */
-    function rebalance() external override live {
+    function rebalance() external override onlyKeeper {
         _rebalanceEarned();
         _rebalanceCollateral();
     }
@@ -87,7 +83,7 @@ abstract contract MakerStrategy is Strategy {
      * payback some DAI in Maker. It will try to mitigate risk of liquidation.
      * Anyone can call it except when paused.
      */
-    function rebalanceCollateral() external live {
+    function rebalanceCollateral() external onlyKeeper {
         _rebalanceCollateral();
     }
 
@@ -96,7 +92,7 @@ abstract contract MakerStrategy is Strategy {
      * Also calculate interest fee on earning and transfer fee to fee collector.
      * Anyone can call it except when paused.
      */
-    function rebalanceEarned() external live {
+    function rebalanceEarned() external onlyKeeper {
         _rebalanceEarned();
     }
 
@@ -108,7 +104,7 @@ abstract contract MakerStrategy is Strategy {
      * collateral token from pool and/or Maker and convert those to DAI via Uniswap.
      * Finally payback debt in Maker using DAI.
      */
-    function resurface() external live {
+    function resurface() external onlyKeeper {
         _resurface();
     }
 

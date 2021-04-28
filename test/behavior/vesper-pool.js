@@ -157,6 +157,8 @@ async function shouldBehaveLikePool(poolName, collateralName, pTokenName, accoun
       })
 
       it(`Should withdraw partial ${collateralName} after rebalance`, async function () {
+        // Another deposit to protect from underwater
+        await deposit(10, user2)
         await pool.rebalance()
         const collateralBalanceBefore = await collateralToken.balanceOf(user1)
         const withdrawAmount = (await pool.balanceOf(user1)).div(new BN(2))
@@ -284,6 +286,8 @@ async function shouldBehaveLikePool(poolName, collateralName, pTokenName, accoun
       })
 
       it('Should collect fee on withdraw after rebalance', async function () {
+        // Another deposit to protect from underwater
+        await deposit(10, user1)
         await pool.rebalance()
         await pool.withdraw(depositAmount, {from: user2})
         const vPoolBalanceFC = await pool.balanceOf(feeCollector)
@@ -298,6 +302,8 @@ async function shouldBehaveLikePool(poolName, collateralName, pTokenName, accoun
       })
 
       it('Should allow fee collector to withdraw without fee', async function () {
+        // Another deposit to protect from underwater
+        await deposit(10, user1)
         await pool.rebalance()
         const withdrawAmount = await pool.balanceOf(user2)
         await pool.withdraw(withdrawAmount, {from: user2})

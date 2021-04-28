@@ -20,6 +20,7 @@ contract('VETH Pool', function (accounts) {
   const [, user1] = accounts
 
   beforeEach(async function () {
+    this.accounts = accounts
     await setupVPool(vDaiPoolObj, {
       controller: Controller,
       pool: VDAI,
@@ -60,5 +61,13 @@ contract('VETH Pool', function (accounts) {
     await expectRevert(tx, 'not-allowed-to-sweep')
     tx = vEth.sweepErc20(vDai.address)
     await expectRevert(tx, 'Not allowed to sweep')
+  })
+
+  it('Should not allow non keeper to rebalance or sweep', async function () {
+    await deposit(vEth, weth, 10, user1)
+    let tx =  strategy.rebalance({from: accounts[1]})
+    await expectRevert(tx, 'caller-is-not-keeper')
+    tx = strategy.sweepErc20(vDai.address, {from: accounts[1]})
+    await expectRevert(tx, 'caller-is-not-keeper')
   })
 })
