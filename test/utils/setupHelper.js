@@ -152,7 +152,7 @@ async function setupVPool(obj, poolData) {
   obj.controller = contracts && contracts.controller ? contracts.controller : await controller.new()
   obj.pool = await pool.new(obj.controller.address)
   await obj.controller.addPool(obj.pool.address)
-  if (strategyType === 'maker' || strategyType === 'compoundMaker') {
+  if (strategyType === 'aaveMaker' || strategyType === 'compoundMaker') {
     await createMakerStrategy(obj, collateralManager, strategy)
   } else if (strategyType === 'vesperMaker') {
     await createVesperMakerStrategy(obj, collateralManager, strategy, vPool)

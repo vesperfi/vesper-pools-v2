@@ -79,7 +79,8 @@ abstract contract CompoundMakerStrategy is MakerStrategy {
         return cm.getVaultDebt(vaultNum) > _getDaiBalance().add(_daiEarned);
     }
 
-    function _afterApproveToken(uint256 _amount) internal override {
+    function _approveToken(uint256 _amount) internal override {
+        super._approveToken(_amount);
         IUniswapV2Router02 uniswapRouter = IUniswapV2Router02(controller.uniswapRouter());
         IERC20(rewardToken).safeApprove(address(uniswapRouter), _amount);
     }
