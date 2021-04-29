@@ -1,0 +1,88 @@
+
+{
+  "version": "2.0.6",
+  "networks": {
+    "mainnet": {
+      "poolList":"0xd559bA46da65959540405C9c73f51c76c62EC119",
+      "collateralManager": "0x8d0b8e2b5584cE1487317f81Da7d97397eF3e899",
+      "collateralManagerV2": "0x6846470150e5273C61f16c5FFB94Fff5Fed259DF",
+      "controller": "0xa4F1671d3Aee73C05b552d57f2d16d3cfcBd0217",
+      "vsp": "0x1b40183EFB4Dd766f11bDa7A7c3AD8982e998421",
+      "revenueSplitter": "0x223809E09ec28C28219769C3FF05c790c213152C",
+      "vBetaETH":{
+        "pool":"0x2C361913e2dA663e1898162Ec01497C46eb87AbF",
+        "feeWhiteList":"0x9520b477aa81180e6ddc006fc09fb6d3eb4e807a",
+        "strategy":{
+          "aaveMaker":"0x25174c74222a62a9a5Aa30e5975da0230f6856B2",
+          "cream": "0xb92d607Dc7DDAAA6a3a213cd0A01c9dD4cE569e6",
+          "compound": "0x61BDfb070eaa448917317D7849e325e715B6389F"
+        }
+      },
+      "vBetaUSDC":{
+        "pool":"0x1e86044468b92c310800d4b350e0f83387a7097f",
+        "feeWhiteList":"0xc5002d54019af215e2c0d246726a3bf2ee152286",
+        "strategy":{
+          "aaveV2":"0x85228b6387BAb860Eb218089d1d4f0417EF7d3fb"
+        }
+      },
+      "vBetaWBTC": {
+        "pool": "0x74Cc5BC20B0c396dF5680eE4aeB6169A6288a8aF",
+        "feeWhiteList":"0xEB827288909927259d50C75673c9025f8F38f0Cc",
+        "strategy": {
+          "compound": "0xC6b905F224a2CC58047C84E4E6529B8C801a48b5",
+          "aaveMaker": "0x251FE6E78d0da0470ab2060E14CDb8216Fdf5425"
+        }
+      },
+      "VLINK": {
+        "pool": "0x0a27E910Aee974D05000e05eab8a4b8Ebd93D40C",
+        "feeWhiteList":"0xEF6FBB51DBDF0B8921587bba31ef245A60F1eA2C",
+        "poolRewards": "0xcA9AEeB14ff396F8661F7DF3128f88c31D2fDEC5",
+        "strategy": {
+          "vesperMaker": "0x59543A595B69897b295F12964d3C7C37B3AD29C0"
+        }
+      },
+      "VDAI": {
+        "pool": "0xcA0c34A3F35520B9490C1d58b35A19AB64014D80",
+        "feeWhiteList":"0x97DbDb3C8a7a6b8a6be61BE6CFBAd891e0Bc5741",
+        "strategy": {
+          "compound": "0xC80573C8D53Ea1bBa1ED505BBB537DCd4adb9067"
+        }
+      },
+      "VETH": {
+        "pool": "0x103cc17C2B1586e5Cd9BaD308690bCd0BBe54D5e",
+        "feeWhiteList":"0x07124d047D3dC8C09AeA0c21F602a6dd377b2Fe5",
+        "poolRewards": "0x93567318aaBd27E21c52F766d2844Fc6De9Dc738",
+        "strategy": {
+          "aaveMaker": "0x2010741f855d3CF16FD60e9cce14AF6DE9b526ff",
+          "compound": "0xFfc4C270244F9c0890c744F042f5f25F9Ff8D4b5"
+        }
+      },
+      "VWBTC": {
+        "pool": "0x4B2e76EbBc9f2923d83F5FBDe695D8733db1a17B",
+        "feeWhiteList":"0x0cF7Ecab8ae021d509b984c5649cFe9Eac7eEe9D",
+        "poolRewards": "0x479A8666Ad530af3054209Db74F3C74eCd295f8D",
+        "strategy": {
+          "aave": "0x949424E8ef3A9fB1859e4A2fEA8b891bc4D28385",
+          "aaveMaker": "0xa3F6Ea08d4083095ec4c363d9cBc629b85029490",
+          "compound": "0x456BCf03C84ae67e840C7A0036562D360b6d09c1"
+        }
+      },
+      "VUSDC": {
+        "pool": "0x0C49066C0808Ee8c673553B7cbd99BCC9ABf113d",
+        "feeWhiteList":"0x4B7DcDD319310e65E972d25B077D1AEfff20113C",
+        "poolRewards": "0xd59996055b5E0d154f2851A030E207E0dF0343B0",
+        "strategy": {
+          "aave": "0x3a51F72104fd7c9257730C437B250E99516202Fc"
+        }
+      },
+      "VVSP": {
+        "pool": "0xbA4cFE5741b357FA371b506e5db0774aBFeCf8Fc",
+        "feeWhiteList":"0xf98339AF6FC8626478F9133833A6914DBf3c4A3a",
+        "keeperList":"0xBa9b1fBd199AD4bEbc88073F8Dc15a358a5301E9",
+        "strategy": {
+          "vspStrategy": "0x2a1B6Fb23cCF9dC89859778cd8D240cbD0bC94f4"
+        }
+      }
+    }
+  }
+}
