@@ -20,13 +20,14 @@ contract('VETH Pool with AaveMakerStrategy V2', function (accounts) {
   let pool, controller, strategy, collateralToken
   const [, user1, user2, user3, user4] = accounts
   beforeEach(async function () {
+    this.accounts = accounts
     await setupVPool(this, {
       controller: Controller,
       pool: VETH,
       strategy: AaveStrategy,
       collateralManager: CollateralManager,
       feeCollector: accounts[9],
-      strategyType: 'maker'
+      strategyType: 'aaveMaker'
     })
     this.newStrategy = AaveStrategyETH
     pool = this.pool

@@ -178,7 +178,7 @@ abstract contract MakerStrategy is Strategy {
         ICollateralManager(_cm).registerVault(vaultId, _collateralType);
     }
 
-    function _approveToken(uint256 _amount) internal override {
+    function _approveToken(uint256 _amount) internal virtual override {
         IERC20(DAI).safeApprove(address(cm), _amount);
         IERC20(DAI).safeApprove(address(receiptToken), _amount);
         IUniswapV2Router02 uniswapRouter = IUniswapV2Router02(controller.uniswapRouter());
@@ -186,12 +186,7 @@ abstract contract MakerStrategy is Strategy {
         collateralToken.safeApprove(address(cm), _amount);
         collateralToken.safeApprove(pool, _amount);
         collateralToken.safeApprove(address(uniswapRouter), _amount);
-        _afterApproveToken(_amount);
     }
-
-    /// @dev Not all child contract will need this. So initialized as empty
-    //solhint-disable-next-line no-empty-blocks
-    function _afterApproveToken(uint256 _amount) internal virtual {}
 
     function _deposit(uint256 _amount) internal override {
         collateralToken.safeTransferFrom(pool, address(this), _amount);
