@@ -7,13 +7,11 @@ jobs:
     strategy:
       matrix:
         node: [12]
-    env:
-      NODE_URL: ${{secrets.NODE_URL}}
     steps:
       - uses: actions/checkout@v2.3.1
         with:
-          token: ${{secrets.VESPER_CI_TOKEN}}
           submodules: true
+      - run: cat "${GITHUB_WORKSPACE}/.github/env.properties" >> $GITHUB_ENV
       - name: Use Node.js
         uses: actions/setup-node@v1
         with:
@@ -23,4 +21,6 @@ jobs:
       - name: Running Pool lifecycle tests
         run: npm test "test/onlyController.js"
       - name: Running Timelock tests
+        env:
+          NODE_URL: ${{env.NODE_URL}}
         run: npm test "test/timelock.js"

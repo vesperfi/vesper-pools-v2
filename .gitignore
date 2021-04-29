@@ -9,3 +9,5 @@ config/local.json
 coverage
 coverage.json
 .coverage*
+.idea/
+*.iml
