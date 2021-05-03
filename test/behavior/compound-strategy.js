@@ -267,7 +267,7 @@ function shouldBehaveLikeStrategy(poolName, collateralName, accounts) {
 
         strategy = await this.newStrategy.new(controller.address, pool.address)
         await controller.updateStrategy(pool.address, strategy.address)
-        await mineBlocks(25)
+        await mineBlocks(200)
         await providerToken.exchangeRateCurrent()
 
         // Deposit and rebalance with new strategy but before migrateIn
