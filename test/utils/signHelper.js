@@ -91,7 +91,7 @@ async function getPermitData(token, amount, ownerMnemonic, spender) {
   const nonce = await token.nonces(owner)
   const block = await web3.eth.getBlock('latest')
   const deadline = block.timestamp + 120
-  const digest = await getPermitlDigest(token, {owner, spender, value: amount}, nonce, deadline)
+  const digest = await getPermitlDigest(token, {owner, spender, value: amount}, nonce.toString(), deadline)
   const {v, r, s} = ecsign(Buffer.from(digest.slice(2), 'hex'), privateKey)
   return {
     owner,
