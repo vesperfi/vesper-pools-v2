@@ -117,6 +117,16 @@ async function createVesperMakerStrategy(obj, collateralManager, strategy, vPool
 async function createStrategy(obj, strategy) {
   obj.strategy = await strategy.new(obj.controller.address, obj.pool.address)
 }
+/**
+ * Create Bancor strategy instance and set it in test class object
+ *
+ * @param {*} obj Test class object
+ * @param {*} strategy Strategy artifact
+ * @param {*} liquidityLockPeriod days withdrawals are locked
+ */
+async function createBancorStrategy(obj, strategy, liquidityLockPeriod) {
+  obj.strategy = await strategy.new(obj.controller.address, obj.pool.address, liquidityLockPeriod)
+}
 
 /**
  * @typedef {object} PoolData
@@ -144,6 +154,7 @@ async function setupVPool(obj, poolData) {
     underlayStrategy,
     vPool,
     contracts,
+    liquidityLockPeriod,
   } = poolData
   const interestFee = '50000000000000000' // 5%
   obj.feeCollector = feeCollector
@@ -155,6 +166,8 @@ async function setupVPool(obj, poolData) {
   // FIXME We are going to retire AaveMakerStrategy soon. using 'maker' type for retiring strategies
   if (strategyType === 'aaveMaker' || strategyType === 'compoundMaker' || strategyType === 'maker') {
     await createMakerStrategy(obj, collateralManager, strategy)
+  } else if (strategyType === 'bancor') {
+    await createBancorStrategy(obj, strategy, liquidityLockPeriod)
   } else if (strategyType === 'vesperMaker') {
     await createVesperMakerStrategy(obj, collateralManager, strategy, vPool)
   } else {
