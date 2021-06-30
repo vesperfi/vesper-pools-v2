@@ -30,8 +30,9 @@ contract Controller is Owned {
     IAddressList public immutable pools;
 
     constructor() public {
-        IAddressListFactory addressFactory =
-            IAddressListFactory(0xD57b41649f822C51a73C44Ba0B3da4A880aF0029);
+        IAddressListFactory addressFactory = IAddressListFactory(
+            0xD57b41649f822C51a73C44Ba0B3da4A880aF0029
+        );
         pools = IAddressList(addressFactory.createList());
     }
 

@@ -12,8 +12,10 @@ abstract contract AaveV2MakerStrategy is MakerStrategy {
     using SafeMath for uint256;
 
     //solhint-disable-next-line const-name-snakecase
-    AaveLendingPoolAddressesProvider public constant aaveAddressesProvider =
-        AaveLendingPoolAddressesProvider(0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5);
+    AaveLendingPoolAddressesProvider
+        public constant aaveAddressesProvider = AaveLendingPoolAddressesProvider(
+        0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5
+    );
 
     uint256 private constant WAT = 10**16;
     IERC20 private immutable aToken;
@@ -37,7 +39,7 @@ abstract contract AaveV2MakerStrategy is MakerStrategy {
 
     /// @dev Check whether given token is reserved or not. Reserved tokens are not allowed to sweep.
     //TODO check staked aave address too
-    function isReservedToken(address _token) public view override returns (bool) {
+    function isReservedToken(address _token) public override view returns (bool) {
         return _token == receiptToken;
     }
 
@@ -46,7 +48,7 @@ abstract contract AaveV2MakerStrategy is MakerStrategy {
         AaveLendingPool(_aaveLendingPool).deposit(DAI, _amount, address(this), 0);
     }
 
-    function _getDaiBalance() internal view override returns (uint256) {
+    function _getDaiBalance() internal override view returns (uint256) {
         return aToken.balanceOf(address(this));
     }
 

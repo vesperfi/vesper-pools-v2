@@ -221,16 +221,16 @@ abstract contract AaveMakerStrategy is IStrategy, Pausable {
     }
 
     /// @dev Returns true if strategy can be upgraded.
-    function isUpgradable() external view override returns (bool) {
+    function isUpgradable() external override view returns (bool) {
         return totalLocked() == 0;
     }
 
-    function isReservedToken(address _token) external view override returns (bool) {
+    function isReservedToken(address _token) external override view returns (bool) {
         return reservedToken[_token];
     }
 
     /// @dev Address of Aave DAI token
-    function token() external view override returns (address) {
+    function token() external override view returns (address) {
         return address(aToken);
     }
 
@@ -240,12 +240,12 @@ abstract contract AaveMakerStrategy is IStrategy, Pausable {
     }
 
     /// @dev Returns total collateral locked in Maker vault
-    function totalLocked() public view override returns (uint256) {
+    function totalLocked() public override view returns (uint256) {
         return convertFrom18(cm.getVaultBalance(vaultNum));
     }
 
     /// @dev Convert from 18 decimals to token defined decimals. Default no conversion.
-    function convertFrom18(uint256 _amount) public pure virtual returns (uint256) {
+    function convertFrom18(uint256 _amount) public virtual pure returns (uint256) {
         return _amount;
     }
 

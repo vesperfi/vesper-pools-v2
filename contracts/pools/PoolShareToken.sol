@@ -21,16 +21,14 @@ abstract contract PoolShareToken is ERC20, Pausable, ReentrancyGuard {
     IController public immutable controller;
 
     /// @dev The EIP-712 typehash for the contract's domain
-    bytes32 public constant DOMAIN_TYPEHASH =
-        keccak256(
-            "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
-        );
+    bytes32 public constant DOMAIN_TYPEHASH = keccak256(
+        "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
+    );
 
     /// @dev The EIP-712 typehash for the permit struct used by the contract
-    bytes32 public constant PERMIT_TYPEHASH =
-        keccak256(
-            "Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"
-        );
+    bytes32 public constant PERMIT_TYPEHASH = keccak256(
+        "Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"
+    );
 
     bytes32 public immutable domainSeparator;
 
@@ -51,8 +49,9 @@ abstract contract PoolShareToken is ERC20, Pausable, ReentrancyGuard {
         }
         token = IERC20(_token);
         controller = IController(_controller);
-        IAddressListFactory factory =
-            IAddressListFactory(0xD57b41649f822C51a73C44Ba0B3da4A880aF0029);
+        IAddressListFactory factory = IAddressListFactory(
+            0xD57b41649f822C51a73C44Ba0B3da4A880aF0029
+        );
         IAddressListExt _feeWhiteList = IAddressListExt(factory.createList());
         _feeWhiteList.grantRole(keccak256("LIST_ADMIN"), _controller);
         feeWhiteList = _feeWhiteList;
@@ -151,23 +150,15 @@ abstract contract PoolShareToken is ERC20, Pausable, ReentrancyGuard {
         bytes32 s
     ) external {
         require(deadline >= block.timestamp, "Expired");
-        bytes32 digest =
-            keccak256(
-                abi.encodePacked(
-                    "\x19\x01",
-                    domainSeparator,
-                    keccak256(
-                        abi.encode(
-                            PERMIT_TYPEHASH,
-                            owner,
-                            spender,
-                            amount,
-                            nonces[owner]++,
-                            deadline
-                        )
-                    )
+        bytes32 digest = keccak256(
+            abi.encodePacked(
+                "\x19\x01",
+                domainSeparator,
+                keccak256(
+                    abi.encode(PERMIT_TYPEHASH, owner, spender, amount, nonces[owner]++, deadline)
                 )
-            );
+            )
+        );
         address signatory = ecrecover(digest, v, r, s);
         require(signatory != address(0) && signatory == owner, "Invalid signature");
         _approve(owner, spender, amount);
@@ -185,22 +176,22 @@ abstract contract PoolShareToken is ERC20, Pausable, ReentrancyGuard {
     }
 
     /// @dev Convert to 18 decimals from token defined decimals. Default no conversion.
-    function convertTo18(uint256 amount) public pure virtual returns (uint256) {
+    function convertTo18(uint256 amount) public virtual pure returns (uint256) {
         return amount;
     }
 
     /// @dev Convert from 18 decimals to token defined decimals. Default no conversion.
-    function convertFrom18(uint256 amount) public pure virtual returns (uint256) {
+    function convertFrom18(uint256 amount) public virtual pure returns (uint256) {
         return amount;
     }
 
     /// @dev Get fee collector address
-    function feeCollector() public view virtual returns (address) {
+    function feeCollector() public virtual view returns (address) {
         return controller.feeCollector(address(this));
     }
 
     /// @dev Returns the token stored in the pool. It will be in token defined decimals.
-    function tokensHere() public view virtual returns (uint256) {
+    function tokensHere() public virtual view returns (uint256) {
         return token.balanceOf(address(this));
     }
 
@@ -208,7 +199,7 @@ abstract contract PoolShareToken is ERC20, Pausable, ReentrancyGuard {
      * @dev Returns sum of token locked in other contracts and token stored in the pool.
      * Default tokensHere. It will be in token defined decimals.
      */
-    function totalValue() public view virtual returns (uint256) {
+    function totalValue() public virtual view returns (uint256) {
         return tokensHere();
     }
 
@@ -216,7 +207,7 @@ abstract contract PoolShareToken is ERC20, Pausable, ReentrancyGuard {
      * @notice Get withdraw fee for this pool
      * @dev Format: 1e16 = 1% fee
      */
-    function withdrawFee() public view virtual returns (uint256) {
+    function withdrawFee() public virtual view returns (uint256) {
         return controller.withdrawFee(address(this));
     }
 
@@ -257,10 +248,9 @@ abstract contract PoolShareToken is ERC20, Pausable, ReentrancyGuard {
 
         uint256 _totalSupply = totalSupply();
         uint256 _totalValue = convertTo18(totalValue());
-        uint256 shares =
-            (_totalSupply == 0 || _totalValue == 0)
-                ? amount
-                : amount.mul(_totalSupply).div(_totalValue);
+        uint256 shares = (_totalSupply == 0 || _totalValue == 0)
+            ? amount
+            : amount.mul(_totalSupply).div(_totalValue);
         return shares;
     }
 
@@ -306,8 +296,9 @@ abstract contract PoolShareToken is ERC20, Pausable, ReentrancyGuard {
         require(shares != 0, "share is 0");
         _beforeBurning(shares);
         uint256 sharesAfterFee = _handleFee(shares);
-        uint256 amount =
-            convertFrom18(sharesAfterFee.mul(convertTo18(totalValue())).div(totalSupply()));
+        uint256 amount = convertFrom18(
+            sharesAfterFee.mul(convertTo18(totalValue())).div(totalSupply())
+        );
 
         _burn(_msgSender(), sharesAfterFee);
         _afterBurning(amount);

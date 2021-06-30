@@ -7,10 +7,12 @@ import "./interfaces/uniswap/IUniswapV2Factory.sol";
 
 contract UniswapManager {
     address public constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
-    IUniswapV2Factory public constant FACTORY =
-        IUniswapV2Factory(0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f);
-    IUniswapV2Router02 public constant ROUTER =
-        IUniswapV2Router02(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
+    IUniswapV2Factory public constant FACTORY = IUniswapV2Factory(
+        0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f
+    );
+    IUniswapV2Router02 public constant ROUTER = IUniswapV2Router02(
+        0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D
+    );
 
     function bestPathFixedInput(
         address _from,

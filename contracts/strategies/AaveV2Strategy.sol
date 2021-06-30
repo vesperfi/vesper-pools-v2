@@ -21,8 +21,10 @@ abstract contract AaveV2Strategy is IStrategy, Pausable {
     IERC20 public immutable collateralToken;
 
     //solhint-disable-next-line const-name-snakecase
-    AaveLendingPoolAddressesProvider public constant aaveAddressesProvider =
-        AaveLendingPoolAddressesProvider(0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5);
+    AaveLendingPoolAddressesProvider
+        public constant aaveAddressesProvider = AaveLendingPoolAddressesProvider(
+        0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5
+    );
     address public immutable override pool;
     uint256 public pendingFee;
 
@@ -136,21 +138,21 @@ abstract contract AaveV2Strategy is IStrategy, Pausable {
 
     /// @dev Returns true if strategy can be upgraded.
     /// @dev If there are no aTokens in strategy then it is upgradable
-    function isUpgradable() external view override returns (bool) {
+    function isUpgradable() external override view returns (bool) {
         return aToken.balanceOf(address(this)) == 0;
     }
 
-    function isReservedToken(address _token) external view override returns (bool) {
+    function isReservedToken(address _token) external override view returns (bool) {
         return reservedToken[_token];
     }
 
     /// @dev Returns address of Aave token correspond to collateral token
-    function token() external view override returns (address) {
+    function token() external override view returns (address) {
         return address(aToken);
     }
 
     /// @dev Returns total collateral locked in pool via this strategy
-    function totalLocked() external view override returns (uint256) {
+    function totalLocked() external override view returns (uint256) {
         uint256 balance = aToken.balanceOf(pool);
         return balance.sub(_calculatePendingFee(balance));
     }
@@ -218,10 +220,8 @@ abstract contract AaveV2Strategy is IStrategy, Pausable {
     function _getToken(address _collateralToken) internal view returns (address) {
         bytes32 providerId = 0x0100000000000000000000000000000000000000000000000000000000000000;
         address aaveProtocolDataProvider = aaveAddressesProvider.getAddress(providerId);
-        (address aTokenAddress, , ) =
-            AaveProtocolDataProvider(aaveProtocolDataProvider).getReserveTokensAddresses(
-                _collateralToken
-            );
+        (address aTokenAddress, , ) = AaveProtocolDataProvider(aaveProtocolDataProvider)
+            .getReserveTokensAddresses(_collateralToken);
         return aTokenAddress;
     }
 

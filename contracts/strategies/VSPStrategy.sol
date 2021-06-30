@@ -30,8 +30,9 @@ contract VSPStrategy is Pausable {
     constructor(address _controller, address _vvsp) public {
         vvsp = IVesperPool(_vvsp);
         controller = IController(_controller);
-        IAddressListFactory factory =
-            IAddressListFactory(0xD57b41649f822C51a73C44Ba0B3da4A880aF0029);
+        IAddressListFactory factory = IAddressListFactory(
+            0xD57b41649f822C51a73C44Ba0B3da4A880aF0029
+        );
         IAddressListExt _keepers = IAddressListExt(factory.createList());
         _keepers.grantRole(keccak256("LIST_ADMIN"), _controller);
         keepers = _keepers;
@@ -127,8 +128,8 @@ contract VSPStrategy is Pausable {
             path[1] = address(WETH);
             path[2] = address(vsp);
         }
-        uint256 amountOut =
-            uniswapRouter.getAmountsOut(from.balanceOf(address(this)), path)[path.length - 1];
+        uint256 amountOut = uniswapRouter.getAmountsOut(from.balanceOf(address(this)), path)[path
+            .length - 1];
         if (amountOut != 0) {
             from.safeApprove(address(uniswapRouter), 0);
             from.safeApprove(address(uniswapRouter), from.balanceOf(address(this)));

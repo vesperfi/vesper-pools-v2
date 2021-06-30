@@ -236,7 +236,7 @@ contract CollateralManager is ICollateralManager, DSMath, ReentrancyGuard {
      * @dev Get current dai debt of vault.
      * @param vaultNum Vault number.
      */
-    function getVaultDebt(uint256 vaultNum) external view override returns (uint256 daiDebt) {
+    function getVaultDebt(uint256 vaultNum) external override view returns (uint256 daiDebt) {
         address urn = ManagerLike(mcdManager).urns(vaultNum);
         address vat = ManagerLike(mcdManager).vat();
         bytes32 ilk = vaultType[vaultNum];
@@ -250,8 +250,8 @@ contract CollateralManager is ICollateralManager, DSMath, ReentrancyGuard {
      */
     function getVaultBalance(uint256 vaultNum)
         external
-        view
         override
+        view
         returns (uint256 collateralLocked)
     {
         address vat = ManagerLike(mcdManager).vat();
@@ -266,8 +266,8 @@ contract CollateralManager is ICollateralManager, DSMath, ReentrancyGuard {
      */
     function whatWouldWithdrawDo(uint256 vaultNum, uint256 amount)
         external
-        view
         override
+        view
         returns (
             uint256 collateralLocked,
             uint256 daiDebt,
@@ -293,8 +293,8 @@ contract CollateralManager is ICollateralManager, DSMath, ReentrancyGuard {
      */
     function getVaultInfo(uint256 vaultNum)
         public
-        view
         override
+        view
         returns (
             uint256 collateralLocked,
             uint256 daiDebt,

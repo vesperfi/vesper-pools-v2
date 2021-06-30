@@ -31,14 +31,14 @@ abstract contract VSPGovernanceToken is ERC20 {
     mapping(address => uint32) public numCheckpoints;
 
     /// @dev The EIP-712 typehash for the contract's domain
-    bytes32 public constant DOMAIN_TYPEHASH =
-        keccak256(
-            "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
-        );
+    bytes32 public constant DOMAIN_TYPEHASH = keccak256(
+        "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
+    );
 
     /// @dev The EIP-712 typehash for the delegation struct used by the contract
-    bytes32 public constant DELEGATION_TYPEHASH =
-        keccak256("Delegation(address delegatee,uint256 nonce,uint256 expiry)");
+    bytes32 public constant DELEGATION_TYPEHASH = keccak256(
+        "Delegation(address delegatee,uint256 nonce,uint256 expiry)"
+    );
 
     /// @dev A record of states for signing / validating signatures
     mapping(address => uint256) public nonces;
@@ -87,16 +87,15 @@ abstract contract VSPGovernanceToken is ERC20 {
         bytes32 r,
         bytes32 s
     ) external {
-        bytes32 domainSeparator =
-            keccak256(
-                abi.encode(
-                    DOMAIN_TYPEHASH,
-                    keccak256(bytes(name())),
-                    keccak256(bytes("1")),
-                    getChainId(),
-                    address(this)
-                )
-            );
+        bytes32 domainSeparator = keccak256(
+            abi.encode(
+                DOMAIN_TYPEHASH,
+                keccak256(bytes(name())),
+                keccak256(bytes("1")),
+                getChainId(),
+                address(this)
+            )
+        );
 
         bytes32 structHash = keccak256(abi.encode(DELEGATION_TYPEHASH, delegatee, nonce, expiry));
 
@@ -200,8 +199,10 @@ abstract contract VSPGovernanceToken is ERC20 {
         uint256 oldVotes,
         uint256 newVotes
     ) internal {
-        uint32 blockNumber =
-            safe32(block.number, "VSP::_writeCheckpoint: block number exceeds 32 bits");
+        uint32 blockNumber = safe32(
+            block.number,
+            "VSP::_writeCheckpoint: block number exceeds 32 bits"
+        );
 
         if (nCheckpoints > 0 && checkpoints[delegatee][nCheckpoints - 1].fromBlock == blockNumber) {
             checkpoints[delegatee][nCheckpoints - 1].votes = newVotes;

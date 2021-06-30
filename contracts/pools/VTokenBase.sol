@@ -71,13 +71,13 @@ abstract contract VTokenBase is PoolShareToken {
     }
 
     /// @dev Returns collateral token locked in strategy
-    function tokenLocked() public view virtual returns (uint256) {
+    function tokenLocked() public virtual view returns (uint256) {
         IStrategy strategy = IStrategy(controller.strategy(address(this)));
         return strategy.totalLocked();
     }
 
     /// @dev Returns total value of vesper pool, in terms of collateral token
-    function totalValue() public view override returns (uint256) {
+    function totalValue() public override view returns (uint256) {
         return tokenLocked().add(tokensHere());
     }
 

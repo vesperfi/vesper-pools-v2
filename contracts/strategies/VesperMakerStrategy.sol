@@ -21,7 +21,7 @@ abstract contract VesperMakerStrategy is MakerStrategy {
         require(IVesperPool(_vPool).token() == DAI, "not-a-valid-dai-pool");
     }
 
-    function _getDaiBalance() internal view override returns (uint256) {
+    function _getDaiBalance() internal override view returns (uint256) {
         return
             (IVesperPool(receiptToken).getPricePerShare())
                 .mul(IVesperPool(receiptToken).balanceOf(address(this)))

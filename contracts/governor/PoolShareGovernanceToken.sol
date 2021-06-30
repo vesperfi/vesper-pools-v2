@@ -31,8 +31,9 @@ abstract contract PoolShareGovernanceToken is PoolShareToken {
     mapping(address => uint32) public numCheckpoints;
 
     /// @dev The EIP-712 typehash for the delegation struct used by the contract
-    bytes32 public constant DELEGATION_TYPEHASH =
-        keccak256("Delegation(address delegatee,uint256 nonce,uint256 expiry)");
+    bytes32 public constant DELEGATION_TYPEHASH = keccak256(
+        "Delegation(address delegatee,uint256 nonce,uint256 expiry)"
+    );
 
     /// @dev An event thats emitted when an account changes its delegate
     event DelegateChanged(
@@ -83,16 +84,15 @@ abstract contract PoolShareGovernanceToken is PoolShareToken {
         bytes32 r,
         bytes32 s
     ) external {
-        bytes32 domainSeparator =
-            keccak256(
-                abi.encode(
-                    DOMAIN_TYPEHASH,
-                    keccak256(bytes(name())),
-                    keccak256(bytes("1")),
-                    getChainId(),
-                    address(this)
-                )
-            );
+        bytes32 domainSeparator = keccak256(
+            abi.encode(
+                DOMAIN_TYPEHASH,
+                keccak256(bytes(name())),
+                keccak256(bytes("1")),
+                getChainId(),
+                address(this)
+            )
+        );
 
         bytes32 structHash = keccak256(abi.encode(DELEGATION_TYPEHASH, delegatee, nonce, expiry));
 
@@ -196,8 +196,10 @@ abstract contract PoolShareGovernanceToken is PoolShareToken {
         uint256 oldVotes,
         uint256 newVotes
     ) internal {
-        uint32 blockNumber =
-            safe32(block.number, "VSP::_writeCheckpoint: block number exceeds 32 bits");
+        uint32 blockNumber = safe32(
+            block.number,
+            "VSP::_writeCheckpoint: block number exceeds 32 bits"
+        );
 
         if (nCheckpoints > 0 && checkpoints[delegatee][nCheckpoints - 1].fromBlock == blockNumber) {
             checkpoints[delegatee][nCheckpoints - 1].votes = newVotes;

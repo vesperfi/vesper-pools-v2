@@ -179,17 +179,17 @@ abstract contract CompoundStrategy is IStrategy, Pausable {
 
     /// @notice Returns true if strategy can be upgraded.
     /// @dev If there are no cTokens in strategy then it is upgradable
-    function isUpgradable() external view override returns (bool) {
+    function isUpgradable() external override view returns (bool) {
         return cToken.balanceOf(address(this)) == 0;
     }
 
     /// @notice This method is deprecated and will be removed from Strategies in next release
-    function isReservedToken(address _token) external view override returns (bool) {
+    function isReservedToken(address _token) external override view returns (bool) {
         return _token == address(cToken) || _token == rewardToken;
     }
 
     /// @dev Returns address of Compound token correspond to collateral token
-    function token() external view override returns (address) {
+    function token() external override view returns (address) {
         return address(cToken);
     }
 
@@ -199,7 +199,7 @@ abstract contract CompoundStrategy is IStrategy, Pausable {
      * will be balance in Compound minus any pending fee to collect.
      * @return Return value will be in collateralToken defined decimal.
      */
-    function totalLocked() external view override returns (uint256) {
+    function totalLocked() external override view returns (uint256) {
         uint256 _totalCTokens = cToken.balanceOf(pool).add(cToken.balanceOf(address(this)));
         return _convertToCollateral(_totalCTokens).sub(_calculatePendingFee());
     }
@@ -308,12 +308,11 @@ abstract contract CompoundStrategy is IStrategy, Pausable {
     }
 
     function _calculatePendingFee() internal view returns (uint256) {
-        uint256 interest =
-            cToken
-                .exchangeRateStored()
-                .sub(exchangeRateStored)
-                .mul(cToken.balanceOf(address(this)))
-                .div(1e18);
+        uint256 interest = cToken
+            .exchangeRateStored()
+            .sub(exchangeRateStored)
+            .mul(cToken.balanceOf(address(this)))
+            .div(1e18);
         uint256 fee = interest.mul(controller.interestFee(pool)).div(1e18);
         return pendingFee.add(fee);
     }

@@ -16,6 +16,7 @@
     "ganache-cli": "ganache-cli",
     "lint": "eslint ./test/*",
     "lint:fix": "eslint --fix ./test --ext .js",
+    "pretest": "npm run solhint",
     "test": "scripts/test-runner",
     "coverage": "truffle run coverage"
   },

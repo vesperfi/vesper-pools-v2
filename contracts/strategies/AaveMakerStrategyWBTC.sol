@@ -25,7 +25,7 @@ contract AaveMakerStrategyWBTC is AaveMakerStrategy {
     {}
 
     /// @dev Convert from 18 decimals to token defined decimals.
-    function convertFrom18(uint256 amount) public pure override returns (uint256) {
+    function convertFrom18(uint256 amount) public override pure returns (uint256) {
         return amount.div(10**10);
     }
 }

@@ -127,7 +127,7 @@ abstract contract MakerStrategy is Strategy {
      * @dev Make sure to return value in collateral token and in order to do that
      * we are using Uniswap to get collateral amount for earned DAI.
      */
-    function interestEarned() external view virtual returns (uint256) {
+    function interestEarned() external virtual view returns (uint256) {
         uint256 daiBalance = _getDaiBalance();
         uint256 debt = cm.getVaultDebt(vaultNum);
         if (daiBalance > debt) {
@@ -140,7 +140,7 @@ abstract contract MakerStrategy is Strategy {
     }
 
     /// @dev Check whether given token is reserved or not. Reserved tokens are not allowed to sweep.
-    function isReservedToken(address _token) public view virtual override returns (bool) {
+    function isReservedToken(address _token) public virtual override view returns (bool) {
         return _token == receiptToken;
     }
 
@@ -149,17 +149,17 @@ abstract contract MakerStrategy is Strategy {
      * @notice Underwater - If debt is greater than earning of pool.
      * @notice Earning - Sum of DAI balance and DAI from accured reward, if any, in lending pool.
      */
-    function isUnderwater() public view virtual returns (bool) {
+    function isUnderwater() public virtual view returns (bool) {
         return cm.getVaultDebt(vaultNum) > _getDaiBalance();
     }
 
     /// @dev Returns total collateral locked via this strategy
-    function totalLocked() public view virtual override returns (uint256) {
+    function totalLocked() public virtual override view returns (uint256) {
         return convertFrom18(cm.getVaultBalance(vaultNum));
     }
 
     /// @dev Convert from 18 decimals to token defined decimals. Default no conversion.
-    function convertFrom18(uint256 _amount) public pure virtual returns (uint256) {
+    function convertFrom18(uint256 _amount) public virtual pure returns (uint256) {
         return _amount;
     }
 
@@ -331,7 +331,7 @@ abstract contract MakerStrategy is Strategy {
 
     function _withdrawExcessDaiFromLender(uint256 _base) internal virtual;
 
-    function _getDaiBalance() internal view virtual returns (uint256);
+    function _getDaiBalance() internal virtual view returns (uint256);
 
     function _getPath(address _from, address _to) internal pure returns (address[] memory) {
         address[] memory path;

@@ -38,7 +38,7 @@ abstract contract CompoundMakerStrategy is MakerStrategy {
      * @dev Make sure to return value in collateral token and in order to do that
      * we are using Uniswap to get collateral amount for earned CMOP and DAI.
      */
-    function interestEarned() external view override returns (uint256 collateralEarned) {
+    function interestEarned() external override view returns (uint256 collateralEarned) {
         uint256 _daiBalanceHere = _getDaiBalance();
         uint256 _debt = cm.getVaultDebt(vaultNum);
 
@@ -59,7 +59,7 @@ abstract contract CompoundMakerStrategy is MakerStrategy {
     }
 
     /// @dev Check whether given token is reserved or not. Reserved tokens are not allowed to sweep.
-    function isReservedToken(address _token) public view override returns (bool) {
+    function isReservedToken(address _token) public override view returns (bool) {
         return _token == receiptToken || _token == rewardToken;
     }
 
@@ -70,7 +70,7 @@ abstract contract CompoundMakerStrategy is MakerStrategy {
      * @dev There can be a scenario when someone calls claimComp() periodically which will
      * leave compAccrued = 0 and pool might be underwater. Call rebalance() to liquidate COMP.
      */
-    function isUnderwater() public view override returns (bool) {
+    function isUnderwater() public override view returns (bool) {
         uint256 _compAccrued = comptroller.compAccrued(address(this));
         uint256 _daiEarned;
         if (_compAccrued != 0) {
@@ -111,7 +111,7 @@ abstract contract CompoundMakerStrategy is MakerStrategy {
         return _uniswapRouter.getAmountsOut(_amountIn, _path)[_path.length - 1];
     }
 
-    function _getDaiBalance() internal view override returns (uint256) {
+    function _getDaiBalance() internal override view returns (uint256) {
         return cToken.balanceOf(address(this)).mul(cToken.exchangeRateStored()).div(1e18);
     }
 

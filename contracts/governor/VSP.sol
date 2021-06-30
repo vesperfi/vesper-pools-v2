@@ -8,10 +8,9 @@ import "./VSPGovernanceToken.sol";
 // solhint-disable no-empty-blocks
 contract VSP is VSPGovernanceToken, Owned {
     /// @dev The EIP-712 typehash for the permit struct used by the contract
-    bytes32 public constant PERMIT_TYPEHASH =
-        keccak256(
-            "Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"
-        );
+    bytes32 public constant PERMIT_TYPEHASH = keccak256(
+        "Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"
+    );
 
     uint256 internal immutable mintLockPeriod;
     uint256 internal constant INITIAL_MINT_LIMIT = 10000000 * (10**18);
@@ -39,8 +38,10 @@ contract VSP is VSPGovernanceToken, Owned {
 
     /// @dev Burn VSP from given account. Caller must have proper allowance.
     function burnFrom(address _account, uint256 _amount) external {
-        uint256 decreasedAllowance =
-            allowance(_account, _msgSender()).sub(_amount, "ERC20: burn amount exceeds allowance");
+        uint256 decreasedAllowance = allowance(_account, _msgSender()).sub(
+            _amount,
+            "ERC20: burn amount exceeds allowance"
+        );
 
         _approve(_account, _msgSender(), decreasedAllowance);
         _burn(_account, _amount);
@@ -83,20 +84,18 @@ contract VSP is VSPGovernanceToken, Owned {
     ) external {
         require(_deadline >= block.timestamp, "VSP:permit: signature expired");
 
-        bytes32 domainSeparator =
-            keccak256(
-                abi.encode(
-                    DOMAIN_TYPEHASH,
-                    keccak256(bytes(name())),
-                    keccak256(bytes("1")),
-                    getChainId(),
-                    address(this)
-                )
-            );
-        bytes32 structHash =
-            keccak256(
-                abi.encode(PERMIT_TYPEHASH, _owner, _spender, _amount, nonces[_owner]++, _deadline)
-            );
+        bytes32 domainSeparator = keccak256(
+            abi.encode(
+                DOMAIN_TYPEHASH,
+                keccak256(bytes(name())),
+                keccak256(bytes("1")),
+                getChainId(),
+                address(this)
+            )
+        );
+        bytes32 structHash = keccak256(
+            abi.encode(PERMIT_TYPEHASH, _owner, _spender, _amount, nonces[_owner]++, _deadline)
+        );
         bytes32 digest = keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
         address signatory = ecrecover(digest, _v, _r, _s);
         require(signatory != address(0) && signatory == _owner, "VSP::permit: invalid signature");

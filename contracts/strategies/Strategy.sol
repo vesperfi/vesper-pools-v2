@@ -93,8 +93,9 @@ abstract contract Strategy is IStrategy, Pausable {
      */
     function createKeeperList() external onlyController {
         require(address(keepers) == address(0), "keeper-list-already-created");
-        IAddressListFactory factory =
-            IAddressListFactory(0xD57b41649f822C51a73C44Ba0B3da4A880aF0029);
+        IAddressListFactory factory = IAddressListFactory(
+            0xD57b41649f822C51a73C44Ba0B3da4A880aF0029
+        );
         keepers = IAddressListExt(factory.createList());
         keepers.grantRole(keccak256("LIST_ADMIN"), _msgSender());
     }
@@ -148,20 +149,20 @@ abstract contract Strategy is IStrategy, Pausable {
     }
 
     /// @dev Returns true if strategy can be upgraded.
-    function isUpgradable() external view override returns (bool) {
+    function isUpgradable() external override view returns (bool) {
         return totalLocked() == 0;
     }
 
     /// @dev Returns address of token correspond to collateral token
-    function token() external view override returns (address) {
+    function token() external override view returns (address) {
         return receiptToken;
     }
 
     /// @dev Check whether given token is reserved or not. Reserved tokens are not allowed to sweep.
-    function isReservedToken(address _token) public view virtual override returns (bool);
+    function isReservedToken(address _token) public virtual override view returns (bool);
 
     /// @dev Returns total collateral locked here
-    function totalLocked() public view virtual override returns (uint256);
+    function totalLocked() public virtual override view returns (uint256);
 
     /**
      * @notice Handle earned interest fee

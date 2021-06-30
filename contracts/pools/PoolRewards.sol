@@ -79,12 +79,12 @@ contract PoolRewards is IPoolRewards, ReentrancyGuard {
         _updateReward(_account);
     }
 
-    function rewardForDuration() external view override returns (uint256) {
+    function rewardForDuration() external override view returns (uint256) {
         return rewardRate.mul(REWARD_DURATION);
     }
 
     /// @dev Returns claimable reward amount.
-    function claimable(address account) public view override returns (uint256) {
+    function claimable(address account) public override view returns (uint256) {
         return
             IERC20(pool)
                 .balanceOf(account)
@@ -94,11 +94,11 @@ contract PoolRewards is IPoolRewards, ReentrancyGuard {
     }
 
     /// @dev Returns timestamp of last reward update
-    function lastTimeRewardApplicable() public view override returns (uint256) {
+    function lastTimeRewardApplicable() public override view returns (uint256) {
         return block.timestamp < periodFinish ? block.timestamp : periodFinish;
     }
 
-    function rewardPerToken() public view override returns (uint256) {
+    function rewardPerToken() public override view returns (uint256) {
         if (IERC20(pool).totalSupply() == 0) {
             return rewardPerTokenStored;
         }
