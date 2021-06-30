@@ -8,6 +8,7 @@
     "test": "test"
   },
   "scripts": {
+    "preinstall": "git submodule update --init",
     "solhint": "solhint './contracts/**/*.sol'",
     "solhint:fix": "prettier --write 'contracts/**/*.sol'",
     "truffle": "truffle",
