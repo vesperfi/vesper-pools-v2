@@ -7,9 +7,7 @@ set -e
 
 [ ! -d node_modules ] && npm ci
 
-scripts/fork-chain --quiet
-
 testFile=$1
-echo "> truffle test ${testFile}"
+echo "> npx hardhat test ${testFile}"
 
-npx truffle test $testFile
+npx hardhat test $testFile

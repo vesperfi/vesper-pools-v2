@@ -11,16 +11,16 @@
     "preinstall": "git submodule update --init",
     "solhint": "solhint './contracts/**/*.sol'",
     "solhint:fix": "prettier --write 'contracts/**/*.sol'",
-    "truffle": "truffle",
-    "fork": "scripts/fork-chain",
-    "ganache-cli": "ganache-cli",
+    "fork": "hardhat node",
     "lint": "eslint ./test/*",
     "lint:fix": "eslint --fix ./test --ext .js",
     "pretest": "npm run solhint",
     "test": "scripts/test-runner",
-    "coverage": "truffle run coverage"
+    "coverage": "hardhat coverage"
   },
   "devDependencies": {
+    "@nomiclabs/hardhat-truffle5": "2.0.0",
+    "@nomiclabs/hardhat-web3": "2.0.0",
     "@openzeppelin/contracts": "3.0.0",
     "@openzeppelin/test-helpers": "0.5.9",
     "@truffle/hdwallet-provider": "1.0.36",
@@ -46,6 +46,7 @@
     "ethers": "5.0.14",
     "ganache-cli": "6.12.1",
     "ganache-time-traveler": "1.0.15",
+    "hardhat": "2.4.1",
     "hdkey": "2.0.1",
     "husky": "4.1.0",
     "ledger-provider": "github:bloq/ledger-provider",
