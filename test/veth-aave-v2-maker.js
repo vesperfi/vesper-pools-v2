@@ -1,101 +1,98 @@
 'use strict'
 
+const hre = require('hardhat')
+const ethers = hre.ethers
+const provider = hre.waffle.provider
 const {shouldBehaveLikePool} = require('./behavior/vesper-pool')
 const {shouldBehaveLikeStrategy} = require('./behavior/maker-strategy')
-const {setupVPool} = require('./utils/setupHelper')
+const {setupVPool, send} = require('./utils/setupHelper')
 const {deposit} = require('./utils/poolOps')
 const {expect} = require('chai')
-const {BN, time} = require('@openzeppelin/test-helpers')
+const time = require('./utils/time')
+const {BigNumber: BN} = require('ethers')
 
-const VETH = artifacts.require('VETH')
-const AaveStrategy = artifacts.require('AaveV2MakerStrategyETH')
-const AaveStrategyETH = artifacts.require('AaveStrategyETH')
-const Controller = artifacts.require('Controller')
-const CollateralManager = artifacts.require('CollateralManager')
-const JugLike = artifacts.require('JugLike')
-
-const DECIMAL = new BN('1000000000000000000')
+const DECIMAL = BN.from('1000000000000000000')
 /* eslint-disable mocha/max-top-level-suites */
-contract('VETH Pool with AaveMakerStrategy V2', function (accounts) {
+describe('VETH Pool with AaveMakerStrategy V2', function () {
   let pool, controller, strategy, collateralToken
-  const [, user1, user2, user3, user4] = accounts
+  let user1, user2, user3, user4
   beforeEach(async function () {
-    this.accounts = accounts
+    this.accounts = await ethers.getSigners()
+    ;[, user1, user2, user3, user4] = this.accounts
     await setupVPool(this, {
-      controller: Controller,
-      pool: VETH,
-      strategy: AaveStrategy,
-      collateralManager: CollateralManager,
-      feeCollector: accounts[9],
+      pool: 'VETH',
+      strategy: 'AaveV2MakerStrategyETH',
+      collateralManager: 'CollateralManager',
+      feeCollector: this.accounts[9],
       strategyType: 'aaveMaker'
     })
-    this.newStrategy = AaveStrategyETH
+    this.newStrategy = 'AaveV2StrategyETH'
     pool = this.pool
     controller = this.controller
     strategy = this.strategy
     collateralToken = this.collateralToken
   })
 
-  shouldBehaveLikePool('vETH', 'WETH', 'aDAI', accounts)
+  shouldBehaveLikePool('vETH', 'WETH', 'aDAI')
 
-  shouldBehaveLikeStrategy('vETH', 'WETH', 'aDAI', accounts)
+  shouldBehaveLikeStrategy('vETH', 'WETH', 'aDAI')
 
   describe('Basic test with ETH as collateral', function() {
     it('Should deposit and rebalance', async function () {
-      const depositAmount = new BN(10).mul(DECIMAL).toString()
-      await pool.methods['deposit()']({value: depositAmount, from: user1})
+      const depositAmount = BN.from(10).mul(DECIMAL).toString()
+      await pool.connect(user1)['deposit()']({value: depositAmount})
         await pool.rebalance()
         return Promise.all([
           pool.tokenLocked(),
           pool.totalSupply(),
           pool.totalValue(),
-          pool.balanceOf(user1),
+          pool.balanceOf(user1.address),
         ]).then(function ([tokenLocked, totalSupply, totalValue, vPoolBalance]) {
-          expect(tokenLocked).to.be.bignumber.equal(depositAmount, 'ETH locked is wrong')
-          expect(totalSupply).to.be.bignumber.equal(depositAmount, 'Total supply of vETH is wrong')
-          expect(totalValue).to.be.bignumber.equal(depositAmount, 'Total value of $ vETH is wrong')
-          expect(vPoolBalance).to.be.bignumber.equal(depositAmount, 'vETH balance of user is wrong')
+          expect(tokenLocked).to.be.equal(depositAmount, 'ETH locked is wrong')
+          expect(totalSupply).to.be.equal(depositAmount, 'Total supply of vETH is wrong')
+          expect(totalValue).to.be.equal(depositAmount, 'Total value of $ vETH is wrong')
+          expect(vPoolBalance).to.be.equal(depositAmount, 'vETH balance of user is wrong')
           
         })
     })
 
     it('Should deposit via fallback and rebalance', async function () {
-      const depositAmount = new BN(10).mul(DECIMAL).toString()
-      await web3.eth.sendTransaction({from:user2, to: pool.address, value: depositAmount})
+      const depositAmount = BN.from(10).mul(DECIMAL)
+      await send(user2.address, pool.address, depositAmount)
         await pool.rebalance()
         return Promise.all([
           pool.tokenLocked(),
           pool.totalSupply(),
           pool.totalValue(),
-          pool.balanceOf(user2),
+          pool.balanceOf(user2.address),
         ]).then(function ([tokenLocked, totalSupply, totalValue, vPoolBalance]) {
-          expect(tokenLocked).to.be.bignumber.equal(depositAmount, 'ETH locked is wrong')
-          expect(totalSupply).to.be.bignumber.equal(depositAmount, 'Total supply of vETH is wrong')
-          expect(totalValue).to.be.bignumber.equal(depositAmount, 'Total value of $ vETH is wrong')
-          expect(vPoolBalance).to.be.bignumber.equal(depositAmount, 'vETH balance of user is wrong')
+          expect(tokenLocked).to.be.equal(depositAmount.toString(), 'ETH locked is wrong')
+          expect(totalSupply).to.be.equal(depositAmount.toString(), 'Total supply of vETH is wrong')
+          expect(totalValue).to.be.equal(depositAmount.toString(), 'Total value of $ vETH is wrong')
+          expect(vPoolBalance).to.be.equal(depositAmount.toString(), 'vETH balance of user is wrong')
           
         })
     })
 
     it('Should withdraw all ETH after rebalance', async function () {
-      const depositAmount = new BN(10).mul(DECIMAL).toString()
-      await pool.methods['deposit()']({value: depositAmount, from: user3})
+      const depositAmount = BN.from(10).mul(DECIMAL).toString()
+      await pool.connect(user3)['deposit()']({value: depositAmount})
       await pool.rebalance()
-      const ethBalanceBefore = await web3.eth.getBalance(user3)
-      const withdrawAmount = await pool.balanceOf(user3)
-      await pool.withdrawETH(withdrawAmount, {from: user3})
+      const ethBalanceBefore = await time.latestBlock()
+      const withdrawAmount = await pool.balanceOf(user3.address)
+      await pool.connect(user3).withdrawETH(withdrawAmount)
       return Promise.all([
         pool.tokenLocked(),
         pool.totalSupply(),
         pool.totalValue(),
-        pool.balanceOf(user3),
-        web3.eth.getBalance(user3),
+        pool.balanceOf(user3.address),
+        provider.getBalance(user3.address),
       ]).then(function ([tokenLocked, totalSupply, totalValue, vPoolBalance, ethBalanceAfter]) {
-        expect(tokenLocked).to.be.bignumber.equal('0', 'ETH locked is wrong')
-        expect(totalSupply).to.be.bignumber.equal('0', 'Total supply of vETH is wrong')
-        expect(totalValue).to.be.bignumber.equal('0', 'Total value of vETH is wrong')
-        expect(vPoolBalance).to.be.bignumber.equal('0', 'vETH balance of user is wrong')
-        expect(ethBalanceAfter).to.be.bignumber.gt(ethBalanceBefore, 'ETH balance of user is wrong')
+        expect(tokenLocked).to.be.equal('0', 'ETH locked is wrong')
+        expect(totalSupply).to.be.equal('0', 'Total supply of vETH is wrong')
+        expect(totalValue).to.be.equal('0', 'Total value of vETH is wrong')
+        expect(vPoolBalance).to.be.equal('0', 'vETH balance of user is wrong')
+        expect(ethBalanceAfter).to.be.gt(ethBalanceBefore, 'ETH balance of user is wrong')
       })
     })
   })
@@ -111,7 +108,7 @@ contract('VETH Pool with AaveMakerStrategy V2', function (accounts) {
       const tokenLocked1 = await pool.tokenLocked()
       await time.increase(24 * 60 * 60)
       // Update rate using Jug drip
-      const jugLike = await JugLike.at('0x19c0976f590D67707E62397C87829d896Dc0f1F1')
+      const jugLike = await ethers.getContractAt('JugLike', '0x19c0976f590D67707E62397C87829d896Dc0f1F1')
       const vaultType = await strategy.collateralType()
       await jugLike.drip(vaultType)
 
@@ -124,29 +121,30 @@ contract('VETH Pool with AaveMakerStrategy V2', function (accounts) {
       const expectedInterestFee = interestEarned.mul(interestFee).div(DECIMAL)
       const expectedVPoolToken = expectedInterestFee.mul(DECIMAL).div(pricePerShare)
 
-      let withdrawAmount = await pool.balanceOf(user1)
-      await pool.withdraw(withdrawAmount, {from: user1})
+      let withdrawAmount = await pool.balanceOf(user1.address)
+      await pool.connect(user1).withdraw(withdrawAmount)
 
-      withdrawAmount = await pool.balanceOf(user2)
-      await pool.withdraw(withdrawAmount, {from: user2})
+      withdrawAmount = await pool.balanceOf(user2.address)
+      await pool.connect(user2).withdraw(withdrawAmount)
 
-      withdrawAmount = await pool.balanceOf(user3)
-      await pool.withdraw(withdrawAmount, {from: user3})
+      withdrawAmount = await pool.balanceOf(user3.address)
+      await pool.connect(user3).withdraw(withdrawAmount)
 
-      withdrawAmount = await pool.balanceOf(user4)
-      await pool.withdraw(withdrawAmount, {from: user4})
+      withdrawAmount = await pool.balanceOf(user4.address)
+      await pool.connect(user4).withdraw(withdrawAmount)
 
-      const balance = await pool.balanceOf(this.feeCollector)
-      expect(balance).to.be.bignumber.equal(expectedVPoolToken, 'vETH balance of FC is wrong')
+      const balance = await pool.balanceOf(this.feeCollector.address)
+      expect(balance).to.be.equal(expectedVPoolToken, 'vETH balance of FC is wrong')
 
-      await pool.withdraw(balance, {from: this.feeCollector})
+      await pool.connect(this.feeCollector).withdraw(balance)
 
-      return Promise.all([pool.tokenLocked(), pool.totalSupply(), pool.totalValue(), pool.balanceOf(user1)]).then(
+      return Promise.all([pool.tokenLocked(), pool.totalSupply(), pool.totalValue(), 
+        pool.balanceOf(user1.address)]).then(
         function ([tokenLocked, totalSupply, totalValue, vPoolBalance]) {
-          expect(tokenLocked).to.be.bignumber.equal('0', 'WETH locked is wrong')
-          expect(totalSupply).to.be.bignumber.equal('0', 'Total supply of vETH is wrong')
-          expect(totalValue).to.be.bignumber.equal('0', 'Total value of vETH is wrong')
-          expect(vPoolBalance).to.be.bignumber.equal('0', 'vETH balance of user is wrong')
+          expect(tokenLocked).to.be.equal('0', 'WETH locked is wrong')
+          expect(totalSupply).to.be.equal('0', 'Total supply of vETH is wrong')
+          expect(totalValue).to.be.equal('0', 'Total value of vETH is wrong')
+          expect(vPoolBalance).to.be.equal('0', 'vETH balance of user is wrong')
         }
       )
     })

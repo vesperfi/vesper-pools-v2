@@ -20,7 +20,3 @@ jobs:
         run: npm install
       - name: Running Pool lifecycle tests
         run: npm test "test/onlyController.js"
-      - name: Running Timelock tests
-        env:
-          NODE_URL: ${{env.NODE_URL}}
-        run: npm test "test/timelock.js"

@@ -11,3 +11,7 @@ coverage.json
 .coverage*
 .idea/
 *.iml
+
+# Hard hat
+artifacts
+cache

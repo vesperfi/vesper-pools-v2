@@ -2,8 +2,15 @@
   "printWidth": 100,
   "overrides": [
     {
-      "files": ["test/*.js", "test/**/*.js"],
+      "files": [
+        "test/*.js",
+        "test/**/*.js",
+        "migrations/*.js",
+        "*.js"
+      ],
       "options": {
+        "semi": false,
+        "singleQuote": true,
         "printWidth": 120
       }
     }

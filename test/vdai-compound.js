@@ -1,26 +1,22 @@
 'use strict'
-
+const {ethers} = require('hardhat')
 const {shouldBehaveLikePool} = require('./behavior/vesper-pool')
 const {shouldBehaveLikeStrategy} = require('./behavior/compound-strategy')
 const {setupVPool} = require('./utils/setupHelper')
 
-const VDAI = artifacts.require('VDAI')
-const CompoundStrategy = artifacts.require('CompoundStrategyDAI')
-const Controller = artifacts.require('Controller')
-
-contract('vDAI Pool with Compound strategy', function (accounts) {
+describe('vDAI Pool with Compound strategy', function () {
   beforeEach(async function () {
+    this.accounts = await ethers.getSigners()
     await setupVPool(this, {
-      controller: Controller,
-      pool: VDAI,
-      strategy: CompoundStrategy,
-      feeCollector: accounts[9],
+      pool: 'VDAI',
+      strategy: 'CompoundStrategyDAI',
+      feeCollector: this.accounts[9],
       strategyType: 'compound',
     })
 
-    this.newStrategy = CompoundStrategy
+    this.newStrategy = 'CompoundStrategyDAI'
   })
 
-  shouldBehaveLikePool('vDAI', 'DAI', 'cDAI', accounts)
-  shouldBehaveLikeStrategy('vDAI', 'DAI', accounts)
+  shouldBehaveLikePool('vDAI', 'DAI', 'cDAI')
+  shouldBehaveLikeStrategy('vDAI', 'DAI')
 })

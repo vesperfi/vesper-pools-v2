@@ -41,7 +41,7 @@ contract VETH is VTokenBase {
         shouldDeposit = false;
         weth.withdraw(amount);
         shouldDeposit = true;
-        _msgSender().transfer(amount);
+        Address.sendValue(_msgSender(), amount);
 
         emit Withdraw(_msgSender(), shares, amount);
     }

@@ -3,11 +3,12 @@
 pragma solidity 0.6.12;
 
 import "./MakerStrategy.sol";
+import "./AaveRewards.sol";
 import "../interfaces/aave/IAaveV2.sol";
 
 /// @dev This strategy will deposit collateral token in Maker and borrow DAI
 /// and deposit borrowed DAI in Aave to earn interest on it.
-abstract contract AaveV2MakerStrategy is MakerStrategy {
+abstract contract AaveV2MakerStrategy is MakerStrategy, AaveRewards {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
 
@@ -29,16 +30,46 @@ abstract contract AaveV2MakerStrategy is MakerStrategy {
         aToken = IERC20(_receiptToken);
     }
 
+    /// @notice Initiate cooldown to unstake aave.
+    function startCooldown() external onlyKeeper returns (bool) {
+        return _startCooldown();
+    }
+
+    /// @notice Unstake Aave from stakedAave contract
+    function unstakeAave() external onlyKeeper {
+        _unstakeAave();
+    }
+
+    /// @notice Returns interest earned since last rebalance.
+    function interestEarned() public view virtual override returns (uint256 collateralEarned) {
+        collateralEarned = super.interestEarned();
+        uint256 _aaveAmount = stkAAVE.getTotalRewardsBalance(address(this));
+        if (_aaveAmount != 0) {
+            (, uint256 _amountOut, ) =
+                swapManager.bestOutputFixedInput(AAVE, address(collateralToken), _aaveAmount);
+            collateralEarned = collateralEarned.add(_amountOut);
+        }
+    }
+
+    /// @dev Check whether given token is reserved or not. Reserved tokens are not allowed to sweep.
+    function isReservedToken(address _token) public view override returns (bool) {
+        return _token == receiptToken || _token == AAVE || _token == address(stkAAVE);
+    }
+
     /// @dev Approve Dai and collateralToken to collateral manager
     function _approveToken(uint256 _amount) internal override {
         super._approveToken(_amount);
         IERC20(DAI).safeApprove(aaveAddressesProvider.getLendingPool(), _amount);
+        for (uint256 i = 0; i < swapManager.N_DEX(); i++) {
+            IERC20(AAVE).safeApprove(address(swapManager.ROUTERS(i)), _amount);
+        }
     }
 
-    /// @dev Check whether given token is reserved or not. Reserved tokens are not allowed to sweep.
-    //TODO check staked aave address too
-    function isReservedToken(address _token) public view override returns (bool) {
-        return _token == receiptToken;
+    function _claimReward() internal override {
+        uint256 _aaveAmount = _claimAave();
+        if (_aaveAmount != 0) {
+            _safeSwap(AAVE, address(collateralToken), _aaveAmount);
+        }
     }
 
     function _depositDaiToLender(uint256 _amount) internal override {
@@ -58,10 +89,10 @@ abstract contract AaveV2MakerStrategy is MakerStrategy {
         );
     }
 
-    function _withdrawExcessDaiFromLender(uint256 _base) internal override {
-        uint256 _balance = _getDaiBalance();
-        if (_balance > _base) {
-            _withdrawDaiFromLender(_balance.sub(_base));
-        }
-    }
+    /// dev these functions are not implemented for this strategy
+    // solhint-disable-next-line no-empty-blocks
+    function _migrateIn() internal override {}
+
+    // solhint-disable-next-line no-empty-blocks
+    function _migrateOut() internal override {}
 }

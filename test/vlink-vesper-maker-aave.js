@@ -1,64 +1,56 @@
 'use strict'
 
+const {ethers} = require('hardhat')
 const {shouldBehaveLikePool} = require('./behavior/vesper-pool')
 const {shouldBehaveLikeStrategy} = require('./behavior/maker-strategy')
 const {deposit} = require('./utils/poolOps')
 const {setupVPool} = require('./utils/setupHelper')
-const VDAI = artifacts.require('VDAI')
-const {expectRevert} = require('@openzeppelin/test-helpers')
-const CollateralManager = artifacts.require('CollateralManager')
-const AaveStrategy = artifacts.require('AaveV2StrategyDAI')
-const VLINK = artifacts.require('VLINK')
-const VesperStrategy = artifacts.require('VesperMakerStrategyLINK')
-const AaveV2StrategyLINK = artifacts.require('AaveV2StrategyLINK')
-const Controller = artifacts.require('Controller')
+const {expect} = require('chai')
 
-contract('VLINK Pool', function (accounts) {
+describe('VLINK Pool', function () {
   let vDai, dai, vLink, strategy, link
   const vDaiPoolObj = {}
 
-  const [, user1] = accounts
-
   beforeEach(async function () {
-    this.accounts = accounts
+    this.accounts = await ethers.getSigners()
+    vDaiPoolObj.accounts = this.accounts
     await setupVPool(vDaiPoolObj, {
-      controller: Controller,
-      pool: VDAI,
-      strategy: AaveStrategy,
-      strategyType: 'aave',
-      feeCollector: accounts[9],
+      pool: 'VDAI',
+      strategy: 'AaveV2StrategyDAI',
+      strategyType: 'aaveV2',
+      feeCollector: this.accounts[9],
     })
     vDai = vDaiPoolObj.pool
     dai = await vDaiPoolObj.collateralToken
-    await deposit(vDai, dai, 2, user1)
+    await deposit(vDai, dai, 2, this.accounts[0])
     await vDai.rebalance()
     await setupVPool(this, {
-      controller: Controller,
-      pool: VLINK,
-      strategy: VesperStrategy,
-      collateralManager: CollateralManager,
-      feeCollector: accounts[9],
+      pool: 'VLINK',
+      strategy: 'VesperMakerStrategyLINK',
+      collateralManager: 'CollateralManager',
+      feeCollector: this.accounts[9],
       strategyType: 'vesperMaker',
       vPool: vDai,
       contracts: {controller: vDaiPoolObj.controller},
     })
     vDai = this.providerToken
-    this.newStrategy = AaveV2StrategyLINK
+    this.newStrategy = 'AaveV2StrategyLINK'
     vLink = this.pool
     strategy = this.strategy
     link = this.collateralToken
   })
 
-  shouldBehaveLikePool('vLINK', 'LINK', 'vLink', accounts)
+  shouldBehaveLikePool('vLINK', 'LINK', 'vLink')
 
-  shouldBehaveLikeStrategy('vLINK', 'LINK', 'vLink', accounts)
+  shouldBehaveLikeStrategy('vLINK', 'LINK', 'vLink')
 
   it('Should not allow to sweep vToken from pool and strategy', async function () {
-    await deposit(vLink, link, 10, user1)
+    await deposit(vLink, link, 10, this.accounts[0])
     await vLink.rebalance()
     let tx = strategy.sweepErc20(vDai.address)
-    await expectRevert(tx, 'not-allowed-to-sweep')
+    await expect(tx).to.be.revertedWith('not-allowed-to-sweep')
     tx = vLink.sweepErc20(vDai.address)
-    await expectRevert(tx, 'Not allowed to sweep')
+    await expect(tx).to.be.revertedWith('Not allowed to sweep')
   })
+
 })

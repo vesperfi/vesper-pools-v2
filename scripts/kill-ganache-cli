@@ -1,9 +1,0 @@
-#!/bin/bash
-
-set -e
-
-PID=$(lsof -i :8545 -s TCP:LISTEN -t) || true
-if [ -n "$PID" ]; then
-  echo "Killing $PID"
-  kill -TERM "$PID"
-fi

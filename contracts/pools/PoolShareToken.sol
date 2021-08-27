@@ -34,7 +34,7 @@ abstract contract PoolShareToken is ERC20, Pausable, ReentrancyGuard {
 
     bytes32 public immutable domainSeparator;
 
-    uint256 internal constant MAX_UINT_VALUE = uint256(-1);
+    uint256 internal constant MAX_UINT_VALUE = type(uint256).max;
     mapping(address => uint256) public nonces;
     event Deposit(address indexed owner, uint256 shares, uint256 amount);
     event Withdraw(address indexed owner, uint256 shares, uint256 amount);
@@ -265,7 +265,7 @@ abstract contract PoolShareToken is ERC20, Pausable, ReentrancyGuard {
     }
 
     /// @dev Deposit incoming token and mint pool token i.e. shares.
-    function _deposit(uint256 amount) internal whenNotPaused {
+    function _deposit(uint256 amount) internal {
         uint256 shares = _calculateShares(convertTo18(amount));
         _beforeMinting(amount);
         _mint(_msgSender(), shares);
@@ -302,7 +302,7 @@ abstract contract PoolShareToken is ERC20, Pausable, ReentrancyGuard {
     }
 
     /// @dev Burns shares and returns the collateral value, after fee, of those.
-    function _withdraw(uint256 shares) internal whenNotShutdown {
+    function _withdraw(uint256 shares) internal {
         require(shares != 0, "share is 0");
         _beforeBurning(shares);
         uint256 sharesAfterFee = _handleFee(shares);

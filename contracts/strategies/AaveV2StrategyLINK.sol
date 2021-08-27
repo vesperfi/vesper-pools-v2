@@ -11,6 +11,6 @@ contract AaveV2StrategyLINK is AaveV2Strategy {
 
     constructor(address _controller, address _pool)
         public
-        AaveV2Strategy(_controller, _pool, 0x514910771AF9Ca656af840dff83E8264EcF986CA)
+        AaveV2Strategy(_controller, _pool, 0xa06bC25B5805d5F8d82847D191Cb4Af5A3e873E0) //aLink
     {}
 }

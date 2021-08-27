@@ -1,25 +1,22 @@
 'use strict'
 
+const {ethers} = require('hardhat')
 const {shouldBehaveLikePool} = require('./behavior/vesper-pool')
-const {shouldBehaveLikeStrategy} = require('./behavior/aave-strategy')
+// const {shouldBehaveLikeStrategy} = require('./behavior/aave-strategy')
 const {setupVPool} = require('./utils/setupHelper')
 
-const VUSDC = artifacts.require('VUSDC')
-const AaveStrategy = artifacts.require('AaveStrategyUSDC')
-const Controller = artifacts.require('Controller')
-
-contract('vUSDC Pool with AaveStrategy', function (accounts) {
+describe('vUSDC Pool with AaveStrategy', function () {
   beforeEach(async function () {
+    this.accounts = await ethers.getSigners()
     await setupVPool(this, {
-      controller: Controller,
-      pool: VUSDC,
-      strategy: AaveStrategy,
-      feeCollector: accounts[9],
-      strategyType: 'aave',
+      pool: 'VUSDC',
+      strategy: 'AaveV2StrategyUSDC',
+      feeCollector: this.accounts[9],
+      strategyType: 'aaveV2',
     })
-    this.newStrategy = AaveStrategy
+    this.newStrategy = 'AaveV2StrategyUSDC'
   })
 
-  shouldBehaveLikePool('vUSDC', 'USDC', 'aUSDC', accounts)
-  shouldBehaveLikeStrategy('vUSDC', 'USDC', 'aUSDC', accounts)
+  shouldBehaveLikePool('vUSDC', 'USDC', 'aUSDC')
+  // shouldBehaveLikeStrategy('vUSDC', 'USDC', 'aUSDC', accounts)
 })

@@ -64,7 +64,7 @@ contract CollateralManager is ICollateralManager, DSMath, ReentrancyGuard {
     address public mcdDaiJoin = 0x9759A6Ac90977b93B58547b4A71c78317f391A28;
     address public mcdSpot = 0x65C79fcB50Ca1594B025960e539eD7A9a6D434A3;
     address public mcdJug = 0x19c0976f590D67707E62397C87829d896Dc0f1F1;
-    uint256 internal constant MAX_UINT_VALUE = uint256(-1);
+    uint256 internal constant MAX_UINT_VALUE = type(uint256).max;
     IController public immutable controller;
 
     modifier onlyVaultOwner(uint256 vaultNum) {

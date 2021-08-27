@@ -127,16 +127,16 @@ abstract contract MakerStrategy is Strategy {
      * @dev Make sure to return value in collateral token and in order to do that
      * we are using Uniswap to get collateral amount for earned DAI.
      */
-    function interestEarned() external view virtual returns (uint256) {
-        uint256 daiBalance = _getDaiBalance();
-        uint256 debt = cm.getVaultDebt(vaultNum);
-        if (daiBalance > debt) {
-            uint256 daiEarned = daiBalance.sub(debt);
-            IUniswapV2Router02 uniswapRouter = IUniswapV2Router02(controller.uniswapRouter());
-            address[] memory path = _getPath(DAI, address(collateralToken));
-            return uniswapRouter.getAmountsOut(daiEarned, path)[path.length - 1];
+    function interestEarned() public view virtual override returns (uint256 amountOut) {
+        uint256 _daiBalance = _getDaiBalance();
+        uint256 _debt = cm.getVaultDebt(vaultNum);
+        if (_daiBalance > _debt) {
+            (, amountOut, ) = swapManager.bestOutputFixedInput(
+                DAI,
+                address(collateralToken),
+                _daiBalance.sub(_debt)
+            );
         }
-        return 0;
     }
 
     /// @dev Check whether given token is reserved or not. Reserved tokens are not allowed to sweep.
@@ -158,11 +158,6 @@ abstract contract MakerStrategy is Strategy {
         return convertFrom18(cm.getVaultBalance(vaultNum));
     }
 
-    /// @dev Convert from 18 decimals to token defined decimals. Default no conversion.
-    function convertFrom18(uint256 _amount) public pure virtual returns (uint256) {
-        return _amount;
-    }
-
     /// @dev Create new Maker vault
     function _createVault(bytes32 _collateralType, address _cm) internal returns (uint256 vaultId) {
         address mcdManager = ICollateralManager(_cm).mcdManager();
@@ -181,11 +176,12 @@ abstract contract MakerStrategy is Strategy {
     function _approveToken(uint256 _amount) internal virtual override {
         IERC20(DAI).safeApprove(address(cm), _amount);
         IERC20(DAI).safeApprove(address(receiptToken), _amount);
-        IUniswapV2Router02 uniswapRouter = IUniswapV2Router02(controller.uniswapRouter());
-        IERC20(DAI).safeApprove(address(uniswapRouter), _amount);
         collateralToken.safeApprove(address(cm), _amount);
         collateralToken.safeApprove(pool, _amount);
-        collateralToken.safeApprove(address(uniswapRouter), _amount);
+        for (uint256 i = 0; i < swapManager.N_DEX(); i++) {
+            IERC20(DAI).safeApprove(address(swapManager.ROUTERS(i)), _amount);
+            collateralToken.safeApprove(address(swapManager.ROUTERS(i)), _amount);
+        }
     }
 
     function _deposit(uint256 _amount) internal override {
@@ -202,13 +198,20 @@ abstract contract MakerStrategy is Strategy {
         }
     }
 
-    function _moveDaiFromMaker(uint256 _amount) internal {
+    function _moveDaiFromMaker(uint256 _amount) internal virtual {
         cm.borrow(vaultNum, _amount);
         _amount = IERC20(DAI).balanceOf(address(this));
         _depositDaiToLender(_amount);
     }
 
-    function _rebalanceCollateral() internal {
+    function _swapBalanceToCollateral(address _from) internal {
+        uint256 amt = IERC20(_from).balanceOf(address(this));
+        if (amt != 0) {
+            _safeSwap(_from, address(collateralToken), amt);
+        }
+    }
+
+    function _rebalanceCollateral() internal virtual {
         _deposit(collateralToken.balanceOf(pool));
         (
             uint256 collateralLocked,
@@ -238,32 +241,14 @@ abstract contract MakerStrategy is Strategy {
             "can-not-rebalance"
         );
         lastRebalanceBlock = block.number;
-        uint256 debt = cm.getVaultDebt(vaultNum);
-        _withdrawExcessDaiFromLender(debt);
-        uint256 balance = IERC20(DAI).balanceOf(address(this));
-        if (balance != 0) {
-            IUniswapV2Router02 uniswapRouter = IUniswapV2Router02(controller.uniswapRouter());
-            address[] memory path = _getPath(DAI, address(collateralToken));
-            //Swap and get collateralToken here
-            // Swap and get collateralToken here.
-            // It is possible that amount out resolves to 0
-            // Which will cause the swap to fail
-            try uniswapRouter.getAmountsOut(balance, path) returns (uint256[] memory amounts) {
-                if (amounts[path.length - 1] != 0) {
-                    uniswapRouter.swapExactTokensForTokens(
-                        balance,
-                        1,
-                        path,
-                        address(this),
-                        now + 30
-                    );
-                    uint256 collateralBalance = collateralToken.balanceOf(address(this));
-                    uint256 fee = collateralBalance.mul(controller.interestFee(pool)).div(1e18);
-                    collateralToken.safeTransfer(pool, collateralBalance.sub(fee));
-                    _handleFee(fee);
-                }
-                // solhint-disable-next-line no-empty-blocks
-            } catch {}
+        _claimReward();
+        _rebalanceDaiInLender();
+        _swapBalanceToCollateral(DAI);
+        uint256 collateralBalance = collateralToken.balanceOf(address(this));
+        if (collateralBalance != 0) {
+            uint256 fee = collateralBalance.mul(controller.interestFee(pool)).div(1e18);
+            collateralToken.safeTransfer(pool, collateralBalance.sub(fee));
+            _handleFee(fee);
         }
     }
 
@@ -272,21 +257,30 @@ abstract contract MakerStrategy is Strategy {
         uint256 debt = cm.getVaultDebt(vaultNum);
         require(debt > earnBalance, "pool-is-above-water");
         uint256 shortAmount = debt.sub(earnBalance);
-        IUniswapV2Router02 uniswapRouter = IUniswapV2Router02(controller.uniswapRouter());
-        address[] memory path = _getPath(address(collateralToken), DAI);
-        uint256 tokenNeeded = uniswapRouter.getAmountsIn(shortAmount, path)[0];
-        if (tokenNeeded != 0) {
+        _paybackShortAmount(shortAmount);
+    }
+
+    function _paybackShortAmount(uint256 shortAmount) internal virtual {
+        (address[] memory path, uint256 collateralNeeded, uint256 rIdx) =
+            swapManager.bestInputFixedOutput(address(collateralToken), DAI, shortAmount);
+        if (collateralNeeded != 0) {
             uint256 balance = collateralToken.balanceOf(pool);
 
             // If pool has more balance than tokenNeeded, get what needed from pool
             // else get pool balance from pool and remaining from Maker vault
-            if (balance >= tokenNeeded) {
-                collateralToken.safeTransferFrom(pool, address(this), tokenNeeded);
+            if (balance >= collateralNeeded) {
+                collateralToken.safeTransferFrom(pool, address(this), collateralNeeded);
             } else {
-                cm.withdrawCollateral(vaultNum, tokenNeeded.sub(balance));
+                cm.withdrawCollateral(vaultNum, collateralNeeded.sub(balance));
                 collateralToken.safeTransferFrom(pool, address(this), balance);
             }
-            uniswapRouter.swapExactTokensForTokens(tokenNeeded, 1, path, address(this), now + 30);
+            swapManager.ROUTERS(rIdx).swapExactTokensForTokens(
+                collateralNeeded,
+                1,
+                path,
+                address(this),
+                block.timestamp
+            );
             uint256 daiBalance = IERC20(DAI).balanceOf(address(this));
             cm.payback(vaultNum, daiBalance);
         }
@@ -329,26 +323,20 @@ abstract contract MakerStrategy is Strategy {
 
     function _withdrawDaiFromLender(uint256 _amount) internal virtual;
 
-    function _withdrawExcessDaiFromLender(uint256 _base) internal virtual;
+    function _rebalanceDaiInLender() internal virtual {
+        uint256 debt = cm.getVaultDebt(vaultNum);
+        uint256 balance = _getDaiBalance();
+        if (balance > debt) {
+            _withdrawDaiFromLender(balance.sub(debt));
+        }
+    }
 
     function _getDaiBalance() internal view virtual returns (uint256);
 
-    function _getPath(address _from, address _to) internal pure returns (address[] memory) {
-        address[] memory path;
-        if (_from == WETH || _to == WETH) {
-            path = new address[](2);
-            path[0] = _from;
-            path[1] = _to;
-        } else {
-            path = new address[](3);
-            path[0] = _from;
-            path[1] = WETH;
-            path[2] = _to;
-        }
-        return path;
-    }
-
     /// Calculating pending fee is not required for Maker strategy
     // solhint-disable-next-line no-empty-blocks
-    function _updatePendingFee() internal override {}
+    function _updatePendingFee() internal virtual override {}
+
+    //solhint-disable-next-line no-empty-blocks
+    function _claimReward() internal virtual override {}
 }

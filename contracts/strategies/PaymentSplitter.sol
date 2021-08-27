@@ -37,7 +37,12 @@ contract PaymentSplitter is Context {
     mapping(address => mapping(address => uint256)) public released;
     // list of payees
     address[] public payees;
+    address public veth;
     address private constant ETHER_ASSET = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+    address private constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+    address private constant VESPER_DEPLOYER = 0xB5AbDABE50b5193d4dB92a16011792B22bA3Ef51;
+    uint256 public constant HIGH = 20e18; // 20 Ether
+    uint256 public constant LOW = 5e18; // 5 Ether
 
     /**
      * @dev Creates an instance of `PaymentSplitter` where each account in `_payees` is assigned token(s) at
@@ -47,17 +52,25 @@ contract PaymentSplitter is Context {
      * duplicates in `payees`.
      * @param _payees -  address(es) of payees eligible to receive token(s)
      * @param _share - list of shares, transferred to payee in provided ratio.
+     * @param _veth - vETH address, used for vesper deployer top up
      */
-    constructor(address[] memory _payees, uint256[] memory _share) public {
+    constructor(
+        address[] memory _payees,
+        uint256[] memory _share,
+        address _veth
+    ) public {
         // solhint-disable-next-line max-line-length
         require(_payees.length == _share.length, "payees-and-share-length-mismatch");
         require(_payees.length > 0, "no-payees");
+        require(_veth != address(0), "invalid-veth");
+        veth = _veth;
 
         for (uint256 i = 0; i < _payees.length; i++) {
             _addPayee(_payees[i], _share[i]);
         }
     }
 
+    //solhint-disable no-empty-blocks
     receive() external payable {}
 
     /**
@@ -66,12 +79,10 @@ contract PaymentSplitter is Context {
      * @param _asset - ERC20 token's address
      */
     function release(address _payee, address _asset) external {
-        require(share[_payee] > 0, "payee-dont-have-share");
-        // find total received token(s)
+        require(share[_payee] > 0, "payee-does-not-have-share");
+        _topUp();
         uint256 totalReceived = IERC20(_asset).balanceOf(address(this)).add(totalReleased[_asset]);
-
         uint256 tokens = _calculateAndUpdateReleasedTokens(_payee, _asset, totalReceived);
-        // Transfer ERC20 token(s) to Payee.
         IERC20(_asset).safeTransfer(_payee, tokens);
         emit PaymentReleased(_payee, _asset, tokens);
     }
@@ -81,13 +92,34 @@ contract PaymentSplitter is Context {
      * @param _payee - payee's address to receive ether
      */
     function releaseEther(address payable _payee) external {
-        require(share[_payee] > 0, "payee-dont-have-share");
+        require(share[_payee] > 0, "payee-does-not-have-share");
         uint256 totalReceived = address(this).balance.add(totalReleased[ETHER_ASSET]);
         // find total received amount
         uint256 amount = _calculateAndUpdateReleasedTokens(_payee, ETHER_ASSET, totalReceived);
         // Transfer Ether to Payee.
         Address.sendValue(_payee, amount);
         emit PaymentReleased(_payee, ETHER_ASSET, amount);
+    }
+
+    /// @notice Top up Vesper deployer address
+    function topUp() external {
+        _topUp();
+    }
+
+    /// @dev Top up Vesper deployer address when balance goes below low mark.
+    function _topUp() internal {
+        uint256 totalEthBalance =
+            VESPER_DEPLOYER.balance.add(IERC20(WETH).balanceOf(VESPER_DEPLOYER)).add(
+                IERC20(veth).balanceOf(VESPER_DEPLOYER)
+            );
+        // transfer only when balance is < low mark
+        if (totalEthBalance < LOW) {
+            uint256 amount =
+                IERC20(veth).balanceOf(address(this)) > (HIGH.sub(totalEthBalance))
+                    ? (HIGH.sub(totalEthBalance))
+                    : IERC20(veth).balanceOf(address(this));
+            IERC20(veth).safeTransfer(VESPER_DEPLOYER, amount);
+        }
     }
 
     /**

@@ -1,73 +1,65 @@
 'use strict'
 
+const {ethers} = require('hardhat')
 const {shouldBehaveLikePool} = require('./behavior/vesper-pool')
 const {shouldBehaveLikeStrategy} = require('./behavior/maker-strategy')
 const {deposit} = require('./utils/poolOps')
 const {setupVPool} = require('./utils/setupHelper')
-const VDAI = artifacts.require('VDAI')
-const {expectRevert} = require('@openzeppelin/test-helpers')
-const CollateralManager = artifacts.require('CollateralManager')
-const CompoundStrategy = artifacts.require('CompoundStrategyDAI')
-const AaveStrategyETH = artifacts.require('AaveStrategyETH')
-const VETH = artifacts.require('VETH')
-const VesperStrategy = artifacts.require('VesperMakerStrategyETH')
-const Controller = artifacts.require('Controller')
+const {expect} = require('chai')
 
-contract('VETH Pool', function (accounts) {
-  let vDai, dai, vEth, strategy, weth
+describe('VETH Pool', function () {
+  let vDai, dai, vEth, strategy, weth, user1
   const vDaiPoolObj = {}
 
-  const [, user1] = accounts
-
   beforeEach(async function () {
-    this.accounts = accounts
+    this.accounts = await ethers.getSigners()
+    vDaiPoolObj.accounts = this.accounts
+    ;[, user1] = this.accounts
     await setupVPool(vDaiPoolObj, {
-      controller: Controller,
-      pool: VDAI,
-      strategy: CompoundStrategy,
+      pool: 'VDAI',
+      strategy: 'CompoundStrategyDAI',
       strategyType: 'compound',
-      feeCollector: accounts[9],
+      feeCollector: this.accounts[9],
     })
     vDai = vDaiPoolObj.pool
     dai = await vDaiPoolObj.collateralToken
-    await deposit(vDai, dai, 2, user1)
+    await deposit(vDai, dai, 200, user1)
     await vDai.rebalance()
     await setupVPool(this, {
-      controller: Controller,
-      pool: VETH,
-      strategy: VesperStrategy,
-      collateralManager: CollateralManager,
-      feeCollector: accounts[9],
+      pool: 'VETH',
+      strategy: 'VesperMakerStrategyETH',
+      collateralManager: 'CollateralManager',
+      feeCollector: this.accounts[9],
       strategyType: 'vesperMaker',
       underlayStrategy: 'compound',
       vPool: vDai,
       contracts: {controller: vDaiPoolObj.controller},
     })
     vDai = this.providerToken
-    this.newStrategy = AaveStrategyETH
+    this.newStrategy = 'AaveV2StrategyETH'
     vEth = this.pool
     strategy = this.strategy
     weth = this.collateralToken
   })
 
-  shouldBehaveLikePool('vETH', 'WETH', 'vDai', accounts)
+  shouldBehaveLikePool('vETH', 'WETH', 'vDai')
 
-  shouldBehaveLikeStrategy('vETH', 'WETH', 'vDai', accounts)
+  shouldBehaveLikeStrategy('vETH', 'WETH', 'vDai')
 
   it('Should not allow to sweep vToken from strategy', async function () {
     await deposit(vEth, weth, 10, user1)
     await vEth.rebalance()
     let tx = strategy.sweepErc20(vDai.address)
-    await expectRevert(tx, 'not-allowed-to-sweep')
+    await expect(tx).to.be.revertedWith('not-allowed-to-sweep')
     tx = vEth.sweepErc20(vDai.address)
-    await expectRevert(tx, 'Not allowed to sweep')
+    await expect(tx).to.be.revertedWith('Not allowed to sweep')
   })
 
   it('Should not allow non keeper to rebalance or sweep', async function () {
     await deposit(vEth, weth, 10, user1)
-    let tx =  strategy.rebalance({from: accounts[1]})
-    await expectRevert(tx, 'caller-is-not-keeper')
-    tx = strategy.sweepErc20(vDai.address, {from: accounts[1]})
-    await expectRevert(tx, 'caller-is-not-keeper')
+    let tx =  strategy.connect(this.accounts[1]).rebalance()
+    await expect(tx).to.be.revertedWith('caller-is-not-keeper')
+    tx = strategy.connect(this.accounts[1]).sweepErc20(vDai.address)
+    await expect(tx).to.be.revertedWith('caller-is-not-keeper')
   })
 })
