@@ -5,34 +5,27 @@ pragma solidity 0.6.12;
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import "../Pausable.sol";
-import "../interfaces/vesper/IController.sol";
+import "./OraclesBase.sol";
 import "../interfaces/vesper/IVesperPool.sol";
 import "../interfaces/bloq/ISwapManager.sol";
 import "../../sol-address-list/contracts/interfaces/IAddressListExt.sol";
 import "../../sol-address-list/contracts/interfaces/IAddressListFactory.sol";
 
-contract VSPStrategy is Pausable {
+contract VSPStrategy is OraclesBase {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
-    uint256 public lastRebalanceBlock;
-    IController public immutable controller;
+    uint256 public lastRebalanceBlock;    
     IVesperPool public immutable vvsp;
     IAddressListExt public immutable keepers;
-    ISwapManager public swapManager = ISwapManager(0xe382d9f2394A359B01006faa8A1864b8a60d2710);
-    address internal constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     uint256 public nextPoolIdx;
     address[] public pools;
     uint256[] public liquidationLimit;
     string public constant NAME = "Strategy-VSP";
     string public constant VERSION = "2.0.3";
 
-    event UpdatedSwapManager(address indexed previousSwapManager, address indexed newSwapManager);
-
-    constructor(address _controller, address _vvsp) public {
+    constructor(address _controller, address _vvsp) public OraclesBase(_controller) { 
         vvsp = IVesperPool(_vvsp);
-        controller = IController(_controller);
         IAddressListFactory factory =
             IAddressListFactory(0xD57b41649f822C51a73C44Ba0B3da4A880aF0029);
         IAddressListExt _keepers = IAddressListExt(factory.createList());
@@ -45,28 +38,12 @@ contract VSPStrategy is Pausable {
         _;
     }
 
-    modifier onlyController() {
-        require(_msgSender() == address(controller), "Caller is not the controller");
-        _;
-    }
-
     function pause() external onlyController {
         _pause();
     }
 
     function unpause() external onlyController {
         _unpause();
-    }
-
-    /**
-     * @notice Update swap manager address
-     * @param _swapManager swap manager address
-     */
-    function updateSwapManager(address _swapManager) external onlyController {
-        require(_swapManager != address(0), "sm-address-is-zero");
-        require(_swapManager != address(swapManager), "sm-is-same");
-        emit UpdatedSwapManager(address(swapManager), _swapManager);
-        swapManager = ISwapManager(_swapManager);
     }
 
     function updateLiquidationQueue(address[] calldata _pools, uint256[] calldata _limit)
@@ -136,9 +113,16 @@ contract VSPStrategy is Pausable {
         if (amountOut != 0) {
             from.safeApprove(address(swapManager.ROUTERS(rIdx)), 0);
             from.safeApprove(address(swapManager.ROUTERS(rIdx)), from.balanceOf(address(this)));
+            uint256 minAmtOut =
+                (swapSlippage != 10000)
+                    ? _calcAmtOutAfterSlippage(
+                        _getOracleRate(_simpleOraclePath(VSP, _poolToken.token()), amountOut),
+                        swapSlippage
+                    )
+                    : 1;
             swapManager.ROUTERS(rIdx).swapExactTokensForTokens(
                 from.balanceOf(address(this)),
-                1,
+                minAmtOut,
                 path,
                 address(this),
                 now + 30
