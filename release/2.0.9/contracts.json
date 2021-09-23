@@ -8,6 +8,8 @@
       "controller": "0xa4F1671d3Aee73C05b552d57f2d16d3cfcBd0217",
       "vsp": "0x1b40183EFB4Dd766f11bDa7A7c3AD8982e998421",
       "revenueSplitter": "0xAdB5ef0CA9029b340bCCDEf005aef442C7F91C96",
+      "governorAlpha": "0x59e06eA66e885580cc1D124775A543B59CAfB3FF",
+      "timelock": "0x4279352DdFa6cfBcAF397B8E93E421c012ad478e",
       "vBetaETH": {
         "pool": "0x2C361913e2dA663e1898162Ec01497C46eb87AbF",
         "feeWhiteList": "0x9520b477aa81180e6ddc006fc09fb6d3eb4e807a",

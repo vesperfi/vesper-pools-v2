@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: BSD 3-Clause
+// SPDX-License-Identifier: BSD-3-Clause
 
 // From https://github.com/compound-finance/compound-protocol/blob/master/contracts/Timelock.sol and modified as needed.
 

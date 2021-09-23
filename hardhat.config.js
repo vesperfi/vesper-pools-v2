@@ -28,6 +28,7 @@ module.exports = {
       url: process.env.NODE_URL,
       chainId: 1,
       gas: 6700000,
+      // accounts: {mnemonic: process.env.MNEMONIC},
     }
   },
   paths: {

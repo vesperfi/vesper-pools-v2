@@ -4,6 +4,7 @@ build
 .env
 .secret_info
 config/local.json
+deployments/localhost/*
 
 # Solidity coverage
 coverage
