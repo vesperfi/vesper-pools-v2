@@ -96,6 +96,23 @@ async function approveToken(controller, target) {
   await controller.executeTransaction(target, 0, methodSignature, data)
 }
 
+async function getEvent(txnObj, contractInstance, eventName) {
+  const txnData = await txnObj.wait()
+  const events = txnData.events.filter(event => event.address === contractInstance.address)
+  // in case more than one events are found.
+  const decodedEvents = events.map(function (event) {
+    try {
+      // Events from same contract with different name will fail
+      return contractInstance.interface.decodeEventLog(eventName, event.data)
+    } catch (e) {
+      // ignore decoding error as it will fail for events with different name than requested
+      return undefined
+    }
+  })
+  // Find 1st event
+  return decodedEvents.find(event => !!event)
+}
+
 /**
  *  Add balancing factors in Aave-Maker Strategy via Controller's executeTransaction
  *
@@ -272,5 +289,6 @@ module.exports = {
   setupVPool,
   deployContract,
   unlock,
-  send
+  send,
+  getEvent
 }
