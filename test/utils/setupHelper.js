@@ -34,8 +34,7 @@ async function send(from, to, amount) {
     {
       from,
       to,
-      value: amount.toHexString(),
-      gasPrice: '0x0'      
+      value: amount.toHexString()
     },
   ])
 }

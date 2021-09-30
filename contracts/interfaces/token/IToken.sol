@@ -18,4 +18,6 @@ interface TokenLike {
     function deposit() external payable;
 
     function withdraw(uint256) external;
+
+    function decimals() external view returns (uint256);
 }

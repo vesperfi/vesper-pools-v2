@@ -21,7 +21,7 @@ jobs:
       - name: Running Governor tests
         env:
           NODE_URL: ${{env.NODE_URL}}
-        run: npm test "test/governor-vsp.js"
+        run: npm test "test/governor-vvsp.js"
       - name: Running multi transfer tests
         env:
           NODE_URL: ${{env.NODE_URL}}

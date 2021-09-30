@@ -7,6 +7,10 @@ import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import "../interfaces/token/IToken.sol";
+import "../interfaces/chainlink/IAggregatorV3.sol";
+import "../interfaces/vesper/IVesperPool.sol";
+import "./../Owned.sol";
 
 /**
  * @title PaymentSplitter
@@ -21,11 +25,15 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
  * accounts but kept in this contract, and the actual transfer is triggered as a separate step by calling the {release} or {releaseEther}
  * function.
  */
-contract PaymentSplitter is Context {
+contract PaymentSplitter is Ownable {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
+
+    // events
     event PayeeAdded(address indexed payee, uint256 share);
     event PaymentReleased(address indexed payee, address indexed asset, uint256 tokens);
+    event VTokenAdded(address indexed vToken, address indexed oracle);
+    event VTokenRemoved(address indexed vToken, address indexed oracle);
 
     // Total share.
     uint256 public totalShare;
@@ -37,12 +45,15 @@ contract PaymentSplitter is Context {
     mapping(address => mapping(address => uint256)) public released;
     // list of payees
     address[] public payees;
-    address public veth;
-    address private constant ETHER_ASSET = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-    address private constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+    address[] public vTokens;
+    mapping(address => bool) private isVToken;
+    mapping(address => address) public oracles; // vToken to collateral token's oracle mapping
     address private constant VESPER_DEPLOYER = 0xB5AbDABE50b5193d4dB92a16011792B22bA3Ef51;
     uint256 public constant HIGH = 20e18; // 20 Ether
-    uint256 public constant LOW = 5e18; // 5 Ether
+    uint256 public constant LOW = 10e18; // 10 Ether
+    address internal constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+    address internal constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+    bool public allowAutoTopUp;
 
     /**
      * @dev Creates an instance of `PaymentSplitter` where each account in `_payees` is assigned token(s) at
@@ -52,21 +63,52 @@ contract PaymentSplitter is Context {
      * duplicates in `payees`.
      * @param _payees -  address(es) of payees eligible to receive token(s)
      * @param _share - list of shares, transferred to payee in provided ratio.
-     * @param _veth - vETH address, used for vesper deployer top up
      */
-    constructor(
-        address[] memory _payees,
-        uint256[] memory _share,
-        address _veth
-    ) public {
+
+    constructor(address[] memory _payees, uint256[] memory _share) public {
         // solhint-disable-next-line max-line-length
         require(_payees.length == _share.length, "payees-and-share-length-mismatch");
         require(_payees.length > 0, "no-payees");
-        require(_veth != address(0), "invalid-veth");
-        veth = _veth;
-
         for (uint256 i = 0; i < _payees.length; i++) {
             _addPayee(_payees[i], _share[i]);
+        }
+    }
+
+    /**
+     * @dev Add vToken for vesper deployer top-up
+     * @param _vToken - Vesper token
+     * @param _oracle - Chainlink oracle address used for collateral token to ETH estimation
+     * Find chainlink oracle details here https://docs.chain.link/docs/ethereum-addresses/
+     * For pool with WETH as collateral token, we do not need _oracle and _oracle can have ZERO address.
+     */
+    function addVToken(address _vToken, address _oracle) external onlyOwner {
+        require(_vToken != address(0), "vToken-is-zero-address");
+        require(!isVToken[_vToken], "duplicate-vToken");
+        if (IVesperPool(_vToken).token() != WETH) {
+            require(_oracle != address(0), "oracle-is-zero-address");
+            oracles[_vToken] = _oracle;
+        }
+        vTokens.push(_vToken);
+        isVToken[_vToken] = true;
+        emit VTokenAdded(_vToken, _oracle);
+    }
+
+    /**
+     * @dev Remove vToken for vesper deployer top-up
+     * @param _vToken - Vesper token
+     */
+    function removeVToken(address _vToken) external onlyOwner {
+        require(_vToken != address(0), "vToken-is-zero-address");
+        require(isVToken[_vToken], "vToken-not-found");
+        for (uint256 i = 0; i < vTokens.length; i++) {
+            if (vTokens[i] == _vToken) {
+                vTokens[i] = vTokens[vTokens.length - 1];
+                vTokens.pop();
+                delete isVToken[_vToken];
+                emit VTokenRemoved(_vToken, oracles[_vToken]);
+                delete oracles[_vToken];
+                break;
+            }
         }
     }
 
@@ -80,7 +122,9 @@ contract PaymentSplitter is Context {
      */
     function release(address _payee, address _asset) external {
         require(share[_payee] > 0, "payee-does-not-have-share");
-        _topUp();
+        if (allowAutoTopUp) {
+            _topUp();
+        }
         uint256 totalReceived = IERC20(_asset).balanceOf(address(this)).add(totalReleased[_asset]);
         uint256 tokens = _calculateAndUpdateReleasedTokens(_payee, _asset, totalReceived);
         IERC20(_asset).safeTransfer(_payee, tokens);
@@ -93,32 +137,79 @@ contract PaymentSplitter is Context {
      */
     function releaseEther(address payable _payee) external {
         require(share[_payee] > 0, "payee-does-not-have-share");
-        uint256 totalReceived = address(this).balance.add(totalReleased[ETHER_ASSET]);
+        uint256 totalReceived = address(this).balance.add(totalReleased[ETH]);
         // find total received amount
-        uint256 amount = _calculateAndUpdateReleasedTokens(_payee, ETHER_ASSET, totalReceived);
+        uint256 amount = _calculateAndUpdateReleasedTokens(_payee, ETH, totalReceived);
         // Transfer Ether to Payee.
         Address.sendValue(_payee, amount);
-        emit PaymentReleased(_payee, ETHER_ASSET, amount);
+        emit PaymentReleased(_payee, ETH, amount);
     }
 
-    /// @notice Top up Vesper deployer address
+    /**
+     * @dev Set boolean to allow top-up as part of release operation.
+     * @param _allowAutoTopUp - boolean flag for auto top-up.
+     */
+    function setAllowAutoTopUp(bool _allowAutoTopUp) external onlyOwner {
+        allowAutoTopUp = _allowAutoTopUp;
+    }
+
+    /// @notice top-up Vesper deployer address
     function topUp() external {
         _topUp();
     }
 
+    /**
+     * @dev Get vToken token value in Eth
+     * @param _vToken - Vesper token
+     * @param _owner - address owning vToken.
+     */
+    function _estimateVTokenValueInETh(IVesperPool _vToken, address _owner)
+        private
+        view
+        returns (uint256 _valueInEth)
+    {
+        uint256 _collateralTokenAmount =
+            _vToken.totalValue().mul(_vToken.balanceOf(_owner)).div(_vToken.totalSupply());
+        if (_collateralTokenAmount > 0) {
+            if (_vToken.token() == WETH) {
+                _valueInEth = _collateralTokenAmount;
+            } else {
+                // answer is 1 collateral token price in ETH (18 decimals)
+                int256 _answer = IAggregatorV3(oracles[address(_vToken)]).latestAnswer();
+                uint256 _decimals = TokenLike(_vToken.token()).decimals();
+                _valueInEth = uint256(_answer).mul(_collateralTokenAmount).div(10**_decimals);
+            }
+        }
+    }
+
     /// @dev Top up Vesper deployer address when balance goes below low mark.
-    function _topUp() internal {
-        uint256 totalEthBalance =
-            VESPER_DEPLOYER.balance.add(IERC20(WETH).balanceOf(VESPER_DEPLOYER)).add(
-                IERC20(veth).balanceOf(VESPER_DEPLOYER)
+    function _topUp() private {
+        uint256 _totalTokenValueInEth = VESPER_DEPLOYER.balance;
+        if (_totalTokenValueInEth >= LOW) {
+            return;
+        }
+        for (uint256 i = 0; i < vTokens.length; i++) {
+            _totalTokenValueInEth = _totalTokenValueInEth.add(
+                _estimateVTokenValueInETh(IVesperPool(vTokens[i]), VESPER_DEPLOYER)
             );
-        // transfer only when balance is < low mark
-        if (totalEthBalance < LOW) {
-            uint256 amount =
-                IERC20(veth).balanceOf(address(this)) > (HIGH.sub(totalEthBalance))
-                    ? (HIGH.sub(totalEthBalance))
-                    : IERC20(veth).balanceOf(address(this));
-            IERC20(veth).safeTransfer(VESPER_DEPLOYER, amount);
+            if (_totalTokenValueInEth >= LOW) {
+                return;
+            }
+        }
+        uint256 _want = HIGH.sub(_totalTokenValueInEth);
+        for (uint256 i = 0; i < vTokens.length; i++) {
+            uint256 _vTokenBalanceInEth =
+                _estimateVTokenValueInETh(IVesperPool(vTokens[i]), address(this));
+            uint256 _tokenToTransfer = IERC20(vTokens[i]).balanceOf(address(this));
+            if (_want > _vTokenBalanceInEth) {
+                _want = _want.sub(_vTokenBalanceInEth);
+                IERC20(vTokens[i]).safeTransfer(VESPER_DEPLOYER, _tokenToTransfer);
+            } else {
+                // transfer proportionally
+                _tokenToTransfer = _want.mul(_tokenToTransfer).div(_vTokenBalanceInEth);
+                IERC20(vTokens[i]).safeTransfer(VESPER_DEPLOYER, _tokenToTransfer);
+                break;
+            }
         }
     }
 
