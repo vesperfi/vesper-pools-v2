@@ -39,7 +39,8 @@
         "feeWhiteList": "0xEF6FBB51DBDF0B8921587bba31ef245A60F1eA2C",
         "poolRewards": "0xcA9AEeB14ff396F8661F7DF3128f88c31D2fDEC5",
         "strategy": {
-          "vesperMaker": "0x59543A595B69897b295F12964d3C7C37B3AD29C0"
+          "vesperMaker": "0x59543A595B69897b295F12964d3C7C37B3AD29C0",
+          "compound": "0x801CdDB30e3e4519fa98CF242f85c66b7561F4F5"
         }
       },
       "VDAI": {
@@ -72,7 +73,8 @@
         "feeWhiteList": "0x4B7DcDD319310e65E972d25B077D1AEfff20113C",
         "poolRewards": "0xd59996055b5E0d154f2851A030E207E0dF0343B0",
         "strategy": {
-          "aave": "0x3a51F72104fd7c9257730C437B250E99516202Fc"
+          "aave": "0x3a51F72104fd7c9257730C437B250E99516202Fc",
+          "compound": "0xbF84B97BEABc953a7a2ad630940065b69D24c912"
         }
       },
       "VVSP": {
