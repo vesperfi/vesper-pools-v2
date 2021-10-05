@@ -17,10 +17,21 @@ contract GovernorAlpha {
     /// @dev The name of this contract
     string public constant name = "Vesper Governor Alpha";
 
-    /// @dev The number of votes in support of a proposal required in order for a quorum to be reached and for a vote to succeed
+    /// @dev The number of votes in support of a proposal required in order for a quorum to be reached and for a
+    /// vote to succeed. This function will use current total supply
     function quorumVotes() public view returns (uint256) {
-        return governanceToken.totalSupply() / 25;
-    } // 4% of Supply
+        return _quorumVotes(governanceToken.totalSupply());
+    }
+
+    /// @dev Quorum votes for given proposal. This function will use total supply recorded at the time of proposal creation.
+    function quorumVotes(uint256 proposalId) public view returns (uint256) {
+        return _quorumVotes(proposals[proposalId].totalSupply);
+    }
+
+    /// @dev 4% of given supply is quorum
+    function _quorumVotes(uint256 totalSupply) internal pure returns (uint256) {
+        return totalSupply / 25;
+    }
 
     /// @dev The number of votes required in order for a voter to become a proposer
     function proposalThreshold() public view returns (uint256) {
@@ -83,6 +94,8 @@ contract GovernorAlpha {
         bool executed;
         // Receipts of ballots for the entire set of voters
         mapping(address => Receipt) receipts;
+        // vVSP total supply
+        uint256 totalSupply;
     }
 
     /// @dev Ballot receipt record for a voter
@@ -201,7 +214,8 @@ contract GovernorAlpha {
                 forVotes: 0,
                 againstVotes: 0,
                 canceled: false,
-                executed: false
+                executed: false,
+                totalSupply: governanceToken.totalSupply()
             });
 
         proposals[newProposal.id] = newProposal;
@@ -338,7 +352,8 @@ contract GovernorAlpha {
         } else if (block.number <= proposal.endBlock) {
             return ProposalState.Active;
         } else if (
-            proposal.forVotes <= proposal.againstVotes || proposal.forVotes < quorumVotes()
+            proposal.forVotes <= proposal.againstVotes ||
+            proposal.forVotes < _quorumVotes(proposal.totalSupply)
         ) {
             return ProposalState.Defeated;
         } else if (proposal.eta == 0) {

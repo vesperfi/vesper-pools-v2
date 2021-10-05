@@ -1,19 +1,19 @@
 'use strict'
 
-const {ethers} = require('hardhat')
-const {defaultAbiCoder} = ethers.utils
-const {BigNumber: BN} = require('ethers')
-const {assert, expect} = require('chai')
+const { ethers } = require('hardhat')
+const { defaultAbiCoder } = ethers.utils
+const { BigNumber: BN } = require('ethers')
+const { assert, expect } = require('chai')
 const time = require('./utils/time')
-const {getEvent} = require('./utils/setupHelper')
-const {constants} = require('@openzeppelin/test-helpers')
-const {deployContract} = require('./utils/setupHelper')
+const { getEvent } = require('./utils/setupHelper')
+const { constants } = require('@openzeppelin/test-helpers')
+const { deployContract } = require('./utils/setupHelper')
 const oneMillion = BN.from('1000000000000000000000000')
 
 /* eslint-disable mocha/max-top-level-suites, mocha/no-top-level-hooks */
 describe('GovernorAlpha', function () {
   const TWO_DAYS = 172800
-  let controller, governor, strategy, timelock, vwbtc, vvsp
+  let controller, governor, strategy, timelock, vwbtc, vvsp, vsp
   let owner, proposer, proposer2, newAdmin, other
 
   async function updateControllerAdmin() {
@@ -44,30 +44,32 @@ describe('GovernorAlpha', function () {
     const values = [0]
     const signatures = ['updateStrategy(address,address)']
     const calldatas = [defaultAbiCoder.encode(['address', 'address'], [vwbtc.address, strategy.address])]
-    const description = 'Update strategy for vBTC'
+    const description = 'Update strategy for vWBTC'
 
-    await vvsp.delegate(proposer.address)
+    await vvsp.connect(proposer).delegate(proposer.address)
     await governor.connect(proposer).propose(targets, values, signatures, calldatas, description)
     return governor.latestProposalIds(proposer.address)
   }
 
   beforeEach(async function () {
     ;[owner, proposer, proposer2, newAdmin, other] = await ethers.getSigners()
-    const vsp = await deployContract('VSP')
+    vsp = await deployContract('VSP')
     await vsp.mint(owner.address, oneMillion)
     controller = await deployContract('Controller')
     vvsp = await deployContract('VVSP', [controller.address, vsp.address])
-    await vsp.approve(vvsp.address, oneMillion)
-    await vvsp.deposit(oneMillion)
     timelock = await deployContract('Timelock', [owner.address, TWO_DAYS])
     governor = await deployContract('GovernorAlpha', [timelock.address, vvsp.address, owner.address])
     vwbtc = await deployContract('VWBTC', [controller.address])
     await controller.addPool(vwbtc.address)
     strategy = await deployContract('AaveV2StrategyWBTC', [controller.address, vwbtc.address])
-    const vspBalance = await vvsp.balanceOf(owner.address)
-    // Get 2% vsp to propose actions and also wait for withdraw lock
+    // Approve and deposit in vVSP pool
+    await vsp.approve(vvsp.address, oneMillion.div(2))
+    await vvsp.deposit(oneMillion.div(2))
+    const vvspBalance = (await vvsp.balanceOf(owner.address)).div(25)
+    // Wait for vVSP withdraw/transfer lock
     await time.increase(25 * 60 * 60)
-    await vvsp.transfer(proposer.address, vspBalance.div(BN.from(50)))
+    // Transfer 4% vvsp to propose actions and reach quorum 
+    await vvsp.transfer(proposer.address, vvspBalance)
   })
 
   describe('Update timelock admin', function () {
@@ -113,12 +115,12 @@ describe('GovernorAlpha', function () {
       values = [0]
       signatures = ['updatePoolStrategy(address,address)']
       calldatas = [defaultAbiCoder.encode(['address', 'address'], [vwbtc.address, strategy.address])]
-      description = 'Update strategy for vBTC'
+      description = 'Update strategy for vWBTC'
 
-      await vvsp.delegate(proposer.address)
+      await vvsp.connect(proposer).delegate(proposer.address)
     })
 
-    it('Should revert if proposer\'s vote doesn\'t meet thereshold', async function () {
+    it('Should revert if proposer\'s vote doesn\'t meet threshold', async function () {
       const tx = governor.connect(proposer2).propose(targets, values, signatures, calldatas, description)
       await expect(tx).to.be.revertedWith('proposer votes below proposal threshold')
     })
@@ -149,7 +151,7 @@ describe('GovernorAlpha', function () {
       await expect(tx).to.be.revertedWith('too many actions')
     })
 
-    it('Should propose updateStrategy for vBTC', async function () {
+    it('Should propose updateStrategy for vWBTC', async function () {
       const tx = await governor.connect(proposer).propose(targets, values, signatures, calldatas, description)
       const event = await getEvent(tx, governor, 'ProposalCreated')
       const proposalId = await governor.latestProposalIds(proposer.address)
@@ -190,7 +192,54 @@ describe('GovernorAlpha', function () {
       expect(event.proposalId).to.be.equal(proposalId)
     })
 
-    // Special tests, only passes when votingPeriod is 10 blocks in contract.
+    it('Should use recorded totalSupply for quorumVotes', async function () {
+      await time.advanceBlock()
+      await time.advanceBlock()
+      // 1 = Active state
+      assert.equal(await governor.state(proposalId), 1)
+      const quorumVotesBefore = await governor['quorumVotes()']()
+      const quorumVotesProposalBefore = await governor['quorumVotes(uint256)'](proposalId)
+      // Approve and deposit more VSP in vVSP pool to increase totalSupply which will 
+      // increase current quorumVotes
+      const vspBalance = await vsp.balanceOf(owner.address)
+      await vsp.connect(owner).approve(vvsp.address, vspBalance)
+      await vvsp.connect(owner).deposit(vspBalance)
+
+      const quorumVotesAfter = await governor['quorumVotes()']()
+      const quorumVotesProposalAfter = await governor['quorumVotes(uint256)'](proposalId)
+      expect(quorumVotesProposalAfter).to.eq(quorumVotesProposalBefore, 'Proposal quorum votes should not change')
+      expect(quorumVotesAfter).to.gt(quorumVotesBefore, 'Current quorum votes should increase with totalSupply')
+    })
+
+    // Special tests, only passes when votingPeriod() returns 10 blocks from solidity
+    // eslint-disable-next-line mocha/no-skipped-tests
+    it.skip('Should reach quorum using recorded totalSupply', async function () {
+      await time.advanceBlock()
+      await time.advanceBlock()
+      // 1 = Active state
+      assert.equal(await governor.state(proposalId), 1)
+      const proposalBlock = (await governor.proposals(proposalId)).startBlock
+      const VotesOfProposer = await vvsp.getPriorVotes(proposer.address, proposalBlock)
+      // Approve and deposit more VSP in vVSP pool to increase totalSupply which will 
+      // increase current quorumVotes
+      const vspBalance = await vsp.balanceOf(owner.address)
+      await vsp.connect(owner).approve(vvsp.address, vspBalance)
+      await vvsp.connect(owner).deposit(vspBalance)
+
+      const quorumVotes = await governor['quorumVotes()']()
+      const quorumVotesProposal = await governor['quorumVotes(uint256)'](proposalId)
+      expect(VotesOfProposer).to.eq(quorumVotesProposal, 'Proposal quorum votes should = votes of proposer ')
+      expect(quorumVotes).to.gt(quorumVotesProposal, 'Current quorum votes should be > proposal quorum votes')
+
+      // Proposer voting on proposal and reaching quorum
+      await governor.connect(proposer).castVote(proposalId, true)
+      // Mine blocks to reach proposal end block
+      await time.advanceBlock(11)
+      // 4 = Succeeded state
+      assert.equal(await governor.state(proposalId), 4)
+    })
+
+    // Special tests, only passes when votingPeriod() returns 10 blocks from solidity
     // eslint-disable-next-line mocha/no-skipped-tests
     it.skip('Should revert if voting when proposal is defeated', async function () {
       const voteEndBlock = (await time.latestBlock()).add(BN.from(11))
@@ -204,6 +253,7 @@ describe('GovernorAlpha', function () {
     let proposalId
 
     beforeEach(async function () {
+      // Owner delegate all vVSP votes to proposer
       await vvsp.connect(owner).delegate(proposer.address)
       proposalId = await createProposal()
       await time.advanceBlock()
@@ -218,7 +268,7 @@ describe('GovernorAlpha', function () {
       await expect(tx).to.be.revertedWith('proposal can only be queued if it is succeeded')
     })
 
-    // Special tests, only passes when votingPeriod is 10 blocks in contract.
+    // Special tests, only passes when votingPeriod() returns 10 blocks from solidity
     // eslint-disable-next-line mocha/no-skipped-tests
     it.skip('Should successfully queue proposal', async function () {
       await updateTimelockAdmin()
@@ -242,6 +292,7 @@ describe('GovernorAlpha', function () {
 
     beforeEach(async function () {
       await updateControllerAdmin()
+      // Owner delegate all vVSP votes to proposer
       await vvsp.connect(owner).delegate(proposer.address)
       await updateTimelockAdmin()
       await governor.connect(owner).__acceptAdmin()
@@ -254,7 +305,7 @@ describe('GovernorAlpha', function () {
       await time.advanceBlockTo(voteEndBlock)
     })
 
-    // Special tests, only passes when votingPeriod is 10 blocks in contract.
+    // Special tests, only passes when votingPeriod() returns 10 blocks from solidity
     // eslint-disable-next-line mocha/no-skipped-tests
     it.skip('Should revert if proposal is not queued', async function () {
       // 4 = Succeeded state
@@ -263,7 +314,7 @@ describe('GovernorAlpha', function () {
       await expect(tx).to.be.revertedWith('proposal can only be executed if it is queued')
     })
 
-    // Special tests, only passes when votingPeriod is 10 blocks in contract.
+    // Special tests, only passes when votingPeriod() returns 10 blocks from solidity
     // eslint-disable-next-line mocha/no-skipped-tests
     it.skip('Should successfully execute proposal', async function () {
       await governor.connect(other).queue(proposalId)
