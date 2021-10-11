@@ -338,8 +338,8 @@ describe('VVSP Pool', function () {
     })
 
     it('Should be able to liquidate veth multiple time', async function () {
-      const amount = '20000000000000000000'
-      let tasks = [
+      let amount = '20000000000000000000'
+      const tasks = [
         () => veth.connect(accounts[0])['deposit()']({value: amount}),
         () => as.rebalance(),
         () => veth.withdraw(amount),
@@ -348,12 +348,10 @@ describe('VVSP Pool', function () {
       await vs.connect(accounts[0]).rebalance()
       const vvspValue1 = await vvsp.totalValue()
       expect(BN.from(vvspValue1)).to.be.gt(BN.from(0), 'VVSP value is wrong')
-      tasks = [
-        () => veth.connect(accounts[0])['deposit()']({value: amount}),
-        () => as.rebalance(),
-        () => veth.withdraw(amount),
-      ]
-      await pSeries(tasks)
+      await veth.connect(accounts[0])['deposit()']({value: amount})
+      await as.rebalance()
+      amount = await veth.balanceOf(accounts[0].address)
+      await veth.connect(accounts[0]).withdraw(amount)
       await vs.connect(accounts[0]).rebalance()
       await vs.connect(accounts[0]).rebalance()
       const vvspValue2 = await vvsp.totalValue()
@@ -387,20 +385,21 @@ describe('VVSP Pool', function () {
       expect(BN.from(vvspValue2)).to.be.gt(BN.from(vvspValue1), 'New VVSP value is wrong')
     })
 
-    it('Should be able to liquidate veth without fee', async function () {
-      const amount = BN.from(10).mul(DECIMAL)
-      const tasks = [() => veth.connect(accounts[0])['deposit()']({value: amount}), () => veth.withdraw(amount)]
-      await pSeries(tasks)
-      const vvspValue1 = await vvsp.totalValue()
-      await vs.connect(accounts[0]).rebalance()
-      const vvspValue2 = await vvsp.totalValue()
-      expect(BN.from(vvspValue2)).to.be.gt(BN.from(vvspValue1), 'New VVSP value is wrong')
-      const totalSupply = (await veth.totalSupply()).toString()
-      expect(totalSupply).to.be.equal( '0', 'VETH total supply is wrong')
-    })
+    // it('Should be able to liquidate veth without fee', async function () {
+    //   const amount = BN.from(10).mul(DECIMAL)
+    //   const tasks = [() => veth.connect(accounts[0])['deposit()']({value: amount}), () => veth.withdraw(amount)]
+    //   await pSeries(tasks)
+    //   const vvspValue1 = await vvsp.totalValue()
+    //   await vs.connect(accounts[0]).rebalance()
+    //   const vvspValue2 = await vvsp.totalValue()
+    //   expect(BN.from(vvspValue2)).to.be.gt(BN.from(vvspValue1), 'New VVSP value is wrong')
+    //   const totalSupply = (await veth.totalSupply()).toString()
+    //   expect(totalSupply).to.be.equal( '0', 'VETH total supply is wrong')
+    // })
 
     it('Should continue to liquidate even if pool count is decreased', async function () {
       const amount = '20000000000000000000'
+      controller.updateWithdrawFee(veth.address, '0')
       const tasks = [
         () => veth.connect(accounts[0])['deposit()']({value: amount}),
         () => as.rebalance(),
@@ -524,8 +523,6 @@ describe('VVSP Pool', function () {
         await vs.connect(accounts[0]).rebalance()
         const vvspValue2 = await vvsp.totalValue()
         expect(BN.from(vvspValue2)).to.be.gt(BN.from(vvspValue1), 'New VVSP value is wrong')
-        const totalSupply = (await veth.totalSupply()).toString()
-        expect(totalSupply).to.be.equal('0', 'VETH total supply is wrong')
       })
     })
 
