@@ -101,7 +101,7 @@ contract VSPStrategy is OraclesBase {
 
     function _rebalanceEarned(IVesperPool _poolToken, uint256 _amt) internal {
         IERC20(address(_poolToken)).safeTransferFrom(address(vvsp), address(this), _amt);
-        _poolToken.withdrawByStrategy(_amt);
+        _poolToken.withdraw(_amt);
         IERC20 from = IERC20(_poolToken.token());
         IERC20 vsp = IERC20(vvsp.token());
         (address[] memory path, uint256 amountOut, uint256 rIdx) =
