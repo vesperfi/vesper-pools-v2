@@ -82,7 +82,7 @@
         "feeWhiteList": "0xf98339AF6FC8626478F9133833A6914DBf3c4A3a",
         "keeperList": "0xBa9b1fBd199AD4bEbc88073F8Dc15a358a5301E9",
         "strategy": {
-          "vspStrategy": "0x94c7C51a3ff556b46fc697DA0be0dC811e334E7E"
+          "vspStrategy": "0xA5379d69D32555d2a75E0010e09091D990F6A975"
         }
       }
     }
