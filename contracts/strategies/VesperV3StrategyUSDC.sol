@@ -7,7 +7,7 @@ import "./VesperV3Strategy.sol";
 //solhint-disable no-empty-blocks
 contract VesperV3StrategyUSDC is VesperV3Strategy {
     string public constant NAME = "Strategy-VesperV3-USDC";
-    string public constant VERSION = "2.0.2";
+    string public constant VERSION = "2.0.11";
 
     constructor(
         address _controller,

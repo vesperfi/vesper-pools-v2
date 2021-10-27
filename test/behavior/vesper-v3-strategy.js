@@ -7,7 +7,7 @@ const { expect } = require('chai')
 const { BigNumber: BN } = require('ethers')
 const time = require('../utils/time')
 const DECIMAL = BN.from('1000000000000000000')
-const { deployContract, addInList, approveToken, createKeeperList, unlock } = require('../utils/setupHelper')
+const { deployContract, addInList, approveToken, createKeeperList } = require('../utils/setupHelper')
 
 // Vesper V3 strategy behavior test suite
 function shouldBehaveLikeStrategy(poolName, collateralName) {
@@ -15,23 +15,12 @@ function shouldBehaveLikeStrategy(poolName, collateralName) {
   let owner, user1, user2, user3, user4
   let v3Pool, v3Keeper, v3Strategies
 
-  const poolV3Address = '0xB4eDcEFd59750144882170FCc52ffeD40BfD5f7d'
-  const v3PoolTokenWhale = '0x7E381e9ef102605f65A6c3614C023EBd5Fa1ab78'
-
   function convertTo18(amount) {
     const multiplier = DECIMAL.div(BN.from('10').pow(collateralDecimal))
     return BN.from(amount).mul(multiplier).toString()
   }
 
-  const abiV3Strategy = [
-    {
-      inputs: [],
-      name: 'rebalance',
-      outputs: [],
-      stateMutability: 'nonpayable',
-      type: 'function'
-    }
-  ]
+  const abiV3Strategy = ['function rebalance() external']
 
   async function setupV3Strategies(vesperPool) {
     const strategyAddresses = await vesperPool.getStrategies()
@@ -66,16 +55,18 @@ function shouldBehaveLikeStrategy(poolName, collateralName) {
 
     describe(`${poolName}:: V3 rebalance`, function () {
       it('Should increase pricePerShare on each V3 rebalance', async function () {
-        await deposit(pool, collateralToken, 2, user4)
+        await deposit(pool, collateralToken, 200, user3)
         await pool.rebalance()
-        expect(await pool.getPricePerShare()).to.eq(ethers.utils.parseEther('1'), 'Incorrect pricePerShare')
-
+        await rebalanceV3Strategies()
         let pricePerShareBefore = await pool.getPricePerShare()
+
+        time.increase(10 * 60 * 60)
         await rebalanceV3Strategies()
         let pricePerShareAfter = await pool.getPricePerShare()
         expect(pricePerShareAfter).to.gt(pricePerShareBefore, 'PricePerShare should increase')
         pricePerShareBefore = pricePerShareAfter
 
+        time.increase(10 * 60 * 60)
         await rebalanceV3Strategies()
         pricePerShareAfter = await pool.getPricePerShare()
         expect(pricePerShareAfter).to.gt(pricePerShareBefore, 'PricePerShare should increase')
@@ -83,9 +74,8 @@ function shouldBehaveLikeStrategy(poolName, collateralName) {
 
       it('Should withdraw after V3 rebalance', async function () {
         await controller.updateInterestFee(pool.address, '0')
-        await deposit(pool, collateralToken, 2, user4)
+        await deposit(pool, collateralToken, 100, user4)
         await pool.rebalance()
-
         await rebalanceV3Strategies()
 
         const withdrawAmount = await pool.balanceOf(user4.address)
@@ -93,7 +83,7 @@ function shouldBehaveLikeStrategy(poolName, collateralName) {
 
         const vPoolBalance = await pool.balanceOf(user4.address)
         const collateralBalance = await collateralToken.balanceOf(user4.address)
-        expect(collateralBalance).to.gte(withdrawAmount, `${collateralName} balance of pool is wrong`)
+        expect(convertTo18(collateralBalance)).to.gte(withdrawAmount, `${collateralName} balance of pool is wrong`)
         expect(vPoolBalance).to.eq(0, `${poolName} balance of user is wrong`)
       })
     })
@@ -119,7 +109,7 @@ function shouldBehaveLikeStrategy(poolName, collateralName) {
         receiptTokenInPool = await v3Pool.balanceOf(pool.address)
         expect(receiptTokenInPool).to.gt(0, 'receipt token balance should be > 0 in pool')
 
-        strategy = await deployContract(this.newStrategy, [controller.address, pool.address, poolV3Address])
+        strategy = await deployContract(this.newStrategy, [controller.address, pool.address, this.receiptToken])
         await approveToken(controller, strategy.address)
         await createKeeperList(controller, strategy.address)
         const keepers = await strategy.keepers()
@@ -139,21 +129,27 @@ function shouldBehaveLikeStrategy(poolName, collateralName) {
     })
 
     describe(`${poolName}:: Large withdraw`, function () {
-      it('Should withdraw large amount, pool withdraw from strategy', async function () {
-        let collateralBalance = await collateralToken.balanceOf(v3PoolTokenWhale)
+      it('Should withdraw large amount which results in V3 pool withdraw from strategy', async function () {
+        await deposit(pool, collateralToken, 100, user4)
+        // Deploy fund to V3
+        await pool.rebalance()
+        // Deploy fund to V3 strategies
+        await rebalanceV3Strategies()
+
+        let collateralBalance = await collateralToken.balanceOf(user4.address)
         expect(collateralBalance).to.eq(0, 'collateral balance should be = 0')
-        let v3Balance = await v3Pool.balanceOf(v3PoolTokenWhale)
-        expect(v3Balance).to.gt(0, 'V3 pool balance should be > 0')
+        let v2Balance = await pool.balanceOf(user4.address)
+        expect(v2Balance).to.gt(0, 'Pool balance should be > 0')
 
-        const v3WhaleSigner = await unlock(v3PoolTokenWhale)
-        await hre.network.provider.send('hardhat_setBalance',
-          [v3PoolTokenWhale, ethers.utils.parseEther('10').toHexString()])
-        await v3Pool.connect(v3WhaleSigner).withdraw(v3Balance)
+        // Withdraw from V2 pool
+        await pool.connect(user4).withdraw(v2Balance)
 
-        collateralBalance = await collateralToken.balanceOf(v3PoolTokenWhale)
+        collateralBalance = await collateralToken.balanceOf(user4.address)
         expect(collateralBalance).to.gt(0, 'collateral balance should be > 0')
-        v3Balance = await v3Pool.balanceOf(v3PoolTokenWhale)
-        expect(v3Balance).to.eq(0, 'V3 pool balance of whale should be = 0')
+        v2Balance = await pool.balanceOf(user4.address)
+        expect(v2Balance).to.eq(0, 'Pool balance of whale should be = 0')
+        // Large withdraw should leave pool tokensHere as zero
+        expect(await collateralToken.balanceOf(v3Pool.address)).to.eq(0, 'collateral balance of V3 pool should be = 0')
       })
     })
 
@@ -208,7 +204,7 @@ function shouldBehaveLikeStrategy(poolName, collateralName) {
         const data = '0x'
         await controller.connect(owner).executeTransaction(target, 0, methodSignature, data)
 
-        strategy = await deployContract(this.newStrategy, [controller.address, pool.address, poolV3Address])
+        strategy = await deployContract(this.newStrategy, [controller.address, pool.address, this.receiptToken])
         await approveToken(controller, strategy.address)
         await createKeeperList(controller, strategy.address)
         const keepers = await strategy.keepers()
@@ -226,7 +222,8 @@ function shouldBehaveLikeStrategy(poolName, collateralName) {
         await pool.connect(user3).withdraw(withdrawAmount)
 
         const collateralBalance = convertTo18(await collateralToken.balanceOf(user3.address))
-        expect(collateralBalance).to.gt(withdrawAmount, `${collateralName} balance of user is wrong`)
+        // Collateral balance can be greater for existing pools but can be equal for new pool.
+        expect(collateralBalance).to.gte(withdrawAmount, `${collateralName} balance of user is wrong`)
       })
     })
   })

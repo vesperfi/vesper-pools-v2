@@ -4,11 +4,10 @@ const { shouldBehaveLikePool } = require('./behavior/vesper-pool')
 const { shouldBehaveLikeStrategy } = require('./behavior/vesper-v3-strategy')
 const { setupVPool, unlock } = require('./utils/setupHelper')
 
-describe('vDAI Pool with VesperV3Strategy', function () {
+describe('vUSDC Pool with VesperV3Strategy', function () {
 
-
-  const v3PoolAddress = '0xB4eDcEFd59750144882170FCc52ffeD40BfD5f7d'
-  const vesperDeployer = '0xB5AbDABE50b5193d4dB92a16011792B22bA3Ef51'
+  const v3PoolAddress = '0x3553e7420B1D68A010ad447b782fae6388f5F37F'
+  const v3Keeper = '0xdf826ff6518e609E4cEE86299d40611C148099d5'
 
   const abiV3Pool = [
     'function getStrategies() external view returns (address[] memory)',
@@ -23,23 +22,23 @@ describe('vDAI Pool with VesperV3Strategy', function () {
   beforeEach(async function () {
 
     this.accounts = await ethers.getSigners()
-    // vDAI-V3 Pool
+    // vUSDC-V3 Pool
     this.receiptToken = v3PoolAddress
 
     await setupVPool(this, {
       controller: 'Controller',
-      pool: 'VDAI',
-      strategy: 'VesperV3StrategyDAI',
+      pool: 'VUSDC',
+      strategy: 'VesperV3StrategyUSDC',
       feeCollector: this.accounts[9],
       strategyType: 'vesperv3',
     })
-    this.newStrategy = 'VesperV3StrategyDAI'
+    this.newStrategy = 'VesperV3StrategyUSDC'
 
-    this.v3Keeper = await unlock(vesperDeployer)
+    this.v3Keeper = await unlock(v3Keeper)
     this.v3Pool = await ethers.getContractAt(abiV3Pool, v3PoolAddress)
     await this.v3Pool.connect(this.v3Keeper).addInList(await this.v3Pool.feeWhitelist(), this.strategy.address)
   })
 
-  shouldBehaveLikePool('vDAI', 'DAI', 'vDAI-V3')
-  shouldBehaveLikeStrategy('vDAI', 'DAI')
+  shouldBehaveLikePool('vUSDC', 'USDC', 'vUSDC-V3')
+  shouldBehaveLikeStrategy('vUSDC', 'USDC')
 })
