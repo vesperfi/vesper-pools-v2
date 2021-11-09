@@ -1,19 +1,19 @@
 'use strict'
 // eslint-disable-next-line no-shadow
-const {deployContract, send, unlock} = require('./utils/setupHelper')
-const {getEthQuote} = require('./utils/tokenSwapper')
-const {deposit} = require('./utils/poolOps')
+const { deployContract, send, unlock } = require('./utils/setupHelper')
+const { getEthQuote } = require('./utils/tokenSwapper')
+const { deposit } = require('./utils/poolOps')
 const hre = require('hardhat')
 const ethers = hre.ethers
 const provider = hre.waffle.provider
-const {BigNumber: BN} = require('ethers')
+const { BigNumber: BN } = require('ethers')
 const WETH = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'
 const VESPER_DEPLOYER = '0xB5AbDABE50b5193d4dB92a16011792B22bA3Ef51'
 const DECIMAL18 = BN.from('1000000000000000000')
-const {constants} = require('@openzeppelin/test-helpers')
-const {expect, assert} = require('chai')
+const { constants } = require('@openzeppelin/test-helpers')
+const { expect, assert } = require('chai')
 const TokenLike = 'TokenLikeTest'
-const {ZERO_ADDRESS} = constants
+const { ZERO_ADDRESS } = constants
 
 describe('PaymentSplitter', function () {
   let controller
@@ -595,6 +595,18 @@ describe('PaymentSplitter', function () {
         const token = await veth.token()
         const weth = await ethers.getContractAt('TokenLikeTest', token)
         await deposit(veth, weth, 1, user6)
+        await psContract.toggleTopUpStatus()
+      })
+
+      it('should not allow to top-up when top-up is disabled', async function () {
+        // Toggle status to disable
+        await psContract.toggleTopUpStatus()
+        // await psContract.release(payee1.address, asset1.address)
+        const tx = psContract.topUp()
+        await expect(tx).revertedWith('top-up-is-disabled')
+
+        // const tx2 = psContract.release(payee1.address, asset1.address)
+        // await expect(tx2).revertedWith('top-up-is-disabled')
       })
 
       it('should not top-up by default on release', async function () {
@@ -604,7 +616,7 @@ describe('PaymentSplitter', function () {
         await send(user6.address, VESPER_DEPLOYER, BN.from('10').mul(DECIMAL18))
 
         // Transfer some vETH at payment splitter contract address to bring VESPER_DEPLOYER balance < low level
-        await veth.connect(signer)['deposit()']({value: BN.from('8').mul(DECIMAL18).toString()})
+        await veth.connect(signer)['deposit()']({ value: BN.from('8').mul(DECIMAL18).toString() })
         const vethAmount = BN.from('6').mul(DECIMAL18)
         await veth.connect(signer).transfer(psContract.address, vethAmount.toString())
 
@@ -624,8 +636,8 @@ describe('PaymentSplitter', function () {
         expect(vdVethBalanceBefore).to.be.equal(vdVethBalanceAfter, 'Top-up should not have done')
       })
 
-      it('should top-up on release when allowAutoTopUp is set to true', async function () {
-        await psContract.setAllowAutoTopUp(true)
+      it('should top-up on release when isAutoTopUpEnabled is set to true', async function () {
+        await psContract.toggleAutoTopUp()
 
         // Keep 10 ether at VESPER_DEPLOYER
         const signer = await unlock(VESPER_DEPLOYER)
@@ -633,7 +645,7 @@ describe('PaymentSplitter', function () {
         await send(user6.address, VESPER_DEPLOYER, BN.from('10').mul(DECIMAL18))
 
         // Transfer some vETH at payment splitter contract address to bring VESPER_DEPLOYER balance < low level
-        await veth.connect(signer)['deposit()']({value: BN.from('8').mul(DECIMAL18).toString()})
+        await veth.connect(signer)['deposit()']({ value: BN.from('8').mul(DECIMAL18).toString() })
         const vethAmount = BN.from('6').mul(DECIMAL18)
         await veth.connect(signer).transfer(psContract.address, vethAmount.toString())
 
@@ -661,7 +673,7 @@ describe('PaymentSplitter', function () {
         await send(user6.address, VESPER_DEPLOYER, BN.from('13').mul(DECIMAL18))
 
         // Transfer some vETH at payment splitter contract address to bring VESPER_DEPLOYER balance < low level
-        await veth.connect(signer)['deposit()']({value: BN.from('22').mul(DECIMAL18).toString()})
+        await veth.connect(signer)['deposit()']({ value: BN.from('22').mul(DECIMAL18).toString() })
         const vethAmount = BN.from('21').mul(DECIMAL18)
         await veth.connect(signer).transfer(psContract.address, vethAmount.toString())
 
@@ -700,7 +712,7 @@ describe('PaymentSplitter', function () {
         await send(user6.address, VESPER_DEPLOYER, BN.from('15').mul(DECIMAL18))
 
         // Transfer some vETH at payment splitter contract address to bring VESPER_DEPLOYER balance < low level
-        await veth.connect(signer)['deposit()']({value: BN.from('23').mul(DECIMAL18).toString()})
+        await veth.connect(signer)['deposit()']({ value: BN.from('23').mul(DECIMAL18).toString() })
         const vethAmount = BN.from('22').mul(DECIMAL18) // high level is 20 so transfer > 20
         await veth.connect(signer).transfer(psContract.address, vethAmount.toString())
 
@@ -736,7 +748,7 @@ describe('PaymentSplitter', function () {
         await send(user6.address, VESPER_DEPLOYER, BN.from('15').mul(DECIMAL18))
 
         // add some vETH at payment splitter contract address
-        await veth.connect(signer)['deposit()']({value: BN.from('15').mul(DECIMAL18).toString()})
+        await veth.connect(signer)['deposit()']({ value: BN.from('15').mul(DECIMAL18).toString() })
         const vethAmount = BN.from('11').mul(DECIMAL18)
         await veth.connect(signer).transfer(psContract.address, vethAmount.toString())
 
@@ -766,6 +778,7 @@ describe('PaymentSplitter', function () {
         await initStrategy(vusdc.address, 'AaveV2StrategyUSDC')
         psContract = await deployContract('PaymentSplitter', [payees, shares])
         await psContract.addVToken(vusdc.address, chainLinkUsdc2EthOracle)
+        await psContract.toggleAutoTopUp()
       })
 
       it('should top-up vesper deployer with vUSDC token', async function () {
@@ -915,15 +928,55 @@ describe('PaymentSplitter', function () {
         )
       })
 
-      it('should allow auto top-up update using owner', async function () {
-        await psContract.setAllowAutoTopUp(false)
-        expect(await psContract.allowAutoTopUp()).to.be.equal(false)
+      it('should toggle auto top-up to true', async function () {
+        expect(await psContract.isAutoTopUpEnabled()).to.be.equal(false)
+        expect(await psContract.isTopUpEnabled()).to.be.equal(false)
+
+        await psContract.toggleAutoTopUp()
+
+        expect(await psContract.isAutoTopUpEnabled()).to.be.equal(true)
+        expect(await psContract.isTopUpEnabled()).to.be.equal(true)
       })
 
-      it('should not allow auto top-up update using non owner', async function () {
-        await expect(psContract.connect(user6).setAllowAutoTopUp(false)).to.be.revertedWith(
+      it('should toggle auto top-up to false', async function () {
+        // Set state to true
+        await psContract.toggleAutoTopUp()
+        // Set state to false
+        await psContract.toggleAutoTopUp()
+        // Disable auto top-up
+        expect(await psContract.isAutoTopUpEnabled()).to.be.equal(false)
+        // It should NOT disable top-up
+        expect(await psContract.isTopUpEnabled()).to.be.equal(true)
+      })
+
+      it('should not allow auto top-up toggle via non owner', async function () {
+        await expect(psContract.connect(user6).toggleAutoTopUp()).to.be.revertedWith(
           'Ownable: caller is not the owner'
         )
+      })
+
+
+      it('should toggle top-up status to true', async function () {
+        expect(await psContract.isAutoTopUpEnabled()).to.be.equal(false)
+        expect(await psContract.isTopUpEnabled()).to.be.equal(false)
+
+        await psContract.toggleTopUpStatus()
+        // It should NOT enable auto top-up
+        expect(await psContract.isAutoTopUpEnabled()).to.be.equal(false)
+        // Enable top-up
+        expect(await psContract.isTopUpEnabled()).to.be.equal(true)
+      })
+
+      it('should toggle top-up status to false', async function () {
+        // Toggle to true
+        await psContract.toggleTopUpStatus()
+        // Toggle to false
+        await psContract.toggleTopUpStatus()
+
+        // Disable auto top-up
+        expect(await psContract.isAutoTopUpEnabled()).to.be.equal(false)
+        // Disable top-up
+        expect(await psContract.isTopUpEnabled()).to.be.equal(false)
       })
     })
   })

@@ -53,7 +53,8 @@ contract PaymentSplitter is Ownable {
     uint256 public constant LOW = 10e18; // 10 Ether
     address internal constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     address internal constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
-    bool public allowAutoTopUp;
+    bool public isAutoTopUpEnabled;
+    bool public isTopUpEnabled;
 
     /**
      * @dev Creates an instance of `PaymentSplitter` where each account in `_payees` is assigned token(s) at
@@ -122,7 +123,7 @@ contract PaymentSplitter is Ownable {
      */
     function release(address _payee, address _asset) external {
         require(share[_payee] > 0, "payee-does-not-have-share");
-        if (allowAutoTopUp) {
+        if (isAutoTopUpEnabled) {
             _topUp();
         }
         uint256 totalReceived = IERC20(_asset).balanceOf(address(this)).add(totalReleased[_asset]);
@@ -146,15 +147,34 @@ contract PaymentSplitter is Ownable {
     }
 
     /**
-     * @dev Set boolean to allow top-up as part of release operation.
-     * @param _allowAutoTopUp - boolean flag for auto top-up.
+     * @notice Toggle auto top-up
+     * @dev Toggle auto top-up to true will enable top-up too.
      */
-    function setAllowAutoTopUp(bool _allowAutoTopUp) external onlyOwner {
-        allowAutoTopUp = _allowAutoTopUp;
+    function toggleAutoTopUp() external onlyOwner {
+        if (isAutoTopUpEnabled) {
+            isAutoTopUpEnabled = false;
+        } else {
+            isAutoTopUpEnabled = true;
+            isTopUpEnabled = true;
+        }
+    }
+
+    /**
+     * @notice Toggle top-up status
+     * @dev Toggle top-up status to false will disable auto top-up too.
+     */
+    function toggleTopUpStatus() external onlyOwner {
+        if (isTopUpEnabled) {
+            isTopUpEnabled = false;
+            isAutoTopUpEnabled = false;
+        } else {
+            isTopUpEnabled = true;
+        }
     }
 
     /// @notice top-up Vesper deployer address
     function topUp() external {
+        require(isTopUpEnabled, "top-up-is-disabled");
         _topUp();
     }
 
