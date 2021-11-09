@@ -15,7 +15,7 @@ const { expect, assert } = require('chai')
 const TokenLike = 'TokenLikeTest'
 const { ZERO_ADDRESS } = constants
 
-describe('PaymentSplitter', function () {
+describe('RevenueSplitter', function () {
   let controller
 
   async function initStrategy(poolAddress, strategyName) {
@@ -24,7 +24,7 @@ describe('PaymentSplitter', function () {
     await controller.updateStrategy(poolAddress, strategy.address)
   }
 
-  describe('Payment Splitter Contract deployed', function () {
+  describe('Revenue Splitter Contract deployed', function () {
     let payee1, payee2, payee3, payer1, nonpayee1, user6
     context('General validations', function () {
       beforeEach(async function () {
@@ -33,12 +33,12 @@ describe('PaymentSplitter', function () {
       })
 
       it('rejects an empty set of payees', async function () {
-        await expect(deployContract('PaymentSplitter', [[], []])).to.be.revertedWith('no-payees')
+        await expect(deployContract('RevenueSplitter', [[], []])).to.be.revertedWith('no-payees')
       })
 
       it('rejects more payees than share', async function () {
         await expect(
-          deployContract('PaymentSplitter', [
+          deployContract('RevenueSplitter', [
             [payee1.address, payee2.address, payee3.address],
             [20, 30],
           ])
@@ -47,7 +47,7 @@ describe('PaymentSplitter', function () {
 
       it('rejects more share than payees', async function () {
         await expect(
-          deployContract('PaymentSplitter', [
+          deployContract('RevenueSplitter', [
             [payee1.address, payee2.address],
             [20, 30, 40],
           ])
@@ -56,7 +56,7 @@ describe('PaymentSplitter', function () {
 
       it('rejects null payees', async function () {
         await expect(
-          deployContract('PaymentSplitter', [
+          deployContract('RevenueSplitter', [
             [payee1.address, ZERO_ADDRESS],
             [20, 30],
           ])
@@ -65,7 +65,7 @@ describe('PaymentSplitter', function () {
 
       it('rejects zero-valued share', async function () {
         await expect(
-          deployContract('PaymentSplitter', [
+          deployContract('RevenueSplitter', [
             [payee1.address, payee2.address],
             [20, 0],
           ])
@@ -74,7 +74,7 @@ describe('PaymentSplitter', function () {
 
       it('rejects repeated payees', async function () {
         await expect(
-          deployContract('PaymentSplitter', [
+          deployContract('RevenueSplitter', [
             [payee1.address, payee1.address],
             [20, 30],
           ])
@@ -90,7 +90,7 @@ describe('PaymentSplitter', function () {
         controller = await deployContract('Controller')
         const veth = await deployContract('VETH', [controller.address])
         await initStrategy(veth.address, 'AaveV2StrategyETH')
-        psContract = await deployContract('PaymentSplitter', [payees, shares])
+        psContract = await deployContract('RevenueSplitter', [payees, shares])
         await psContract.addVToken(veth.address, ZERO_ADDRESS)
         asset1 = await deployContract('VSP')
         const token = await veth.token()
@@ -154,14 +154,14 @@ describe('PaymentSplitter', function () {
         controller = await deployContract('Controller')
         const veth = await deployContract('VETH', [controller.address])
         await initStrategy(veth.address, 'AaveV2StrategyETH')
-        psContract = await deployContract('PaymentSplitter', [payees, shares])
+        psContract = await deployContract('RevenueSplitter', [payees, shares])
         await psContract.addVToken(veth.address, ZERO_ADDRESS)
         const token = await veth.token()
         const weth = await ethers.getContractAt('TokenLikeTest', token)
         await deposit(veth, weth, 1, user6)
       })
 
-      it('accepts payments', async function () {
+      it('accepts revenue', async function () {
         await send(payer1.address, psContract.address, amount)
         expect(await provider.getBalance(psContract.address)).to.be.equal(amount)
       })
@@ -226,7 +226,7 @@ describe('PaymentSplitter', function () {
           controller = await deployContract('Controller')
           const veth = await deployContract('VETH', [controller.address])
           await initStrategy(veth.address, 'AaveV2StrategyETH')
-          psContract = await deployContract('PaymentSplitter', [payees, shares])
+          psContract = await deployContract('RevenueSplitter', [payees, shares])
           await psContract.addVToken(veth.address, ZERO_ADDRESS)
           await asset1.mint(psContract.address, mintAmount)
           const token = await veth.token()
@@ -373,7 +373,7 @@ describe('PaymentSplitter', function () {
           controller = await deployContract('Controller')
           const veth = await deployContract('VETH', [controller.address])
           await initStrategy(veth.address, 'AaveV2StrategyETH')
-          psContract = await deployContract('PaymentSplitter', [payees, shares])
+          psContract = await deployContract('RevenueSplitter', [payees, shares])
           await psContract.addVToken(veth.address, ZERO_ADDRESS)
           const token = await veth.token()
           const weth = await ethers.getContractAt('TokenLikeTest', token)
@@ -417,7 +417,7 @@ describe('PaymentSplitter', function () {
         controller = await deployContract('Controller')
         veth = await deployContract('VETH', [controller.address])
         await initStrategy(veth.address, 'AaveV2StrategyETH')
-        psContract = await deployContract('PaymentSplitter', [payees, shares])
+        psContract = await deployContract('RevenueSplitter', [payees, shares])
         await psContract.addVToken(veth.address, ZERO_ADDRESS)
         await asset1.mint(psContract.address, mintAmount)
         await asset2.mint(psContract.address, asset2MintAmount)
@@ -586,7 +586,7 @@ describe('PaymentSplitter', function () {
         controller = await deployContract('Controller')
         veth = await deployContract('VETH', [controller.address])
         await initStrategy(veth.address, 'AaveV2StrategyETH')
-        psContract = await deployContract('PaymentSplitter', [payees, shares])
+        psContract = await deployContract('RevenueSplitter', [payees, shares])
         asset1 = await deployContract('VSP')
         const amount = '10000000000000000'
         const mintAmount = BN.from(amount).toString()
@@ -601,12 +601,8 @@ describe('PaymentSplitter', function () {
       it('should not allow to top-up when top-up is disabled', async function () {
         // Toggle status to disable
         await psContract.toggleTopUpStatus()
-        // await psContract.release(payee1.address, asset1.address)
         const tx = psContract.topUp()
         await expect(tx).revertedWith('top-up-is-disabled')
-
-        // const tx2 = psContract.release(payee1.address, asset1.address)
-        // await expect(tx2).revertedWith('top-up-is-disabled')
       })
 
       it('should not top-up by default on release', async function () {
@@ -615,7 +611,7 @@ describe('PaymentSplitter', function () {
         await hre.network.provider.send('hardhat_setBalance', [VESPER_DEPLOYER, '0x0'])
         await send(user6.address, VESPER_DEPLOYER, BN.from('10').mul(DECIMAL18))
 
-        // Transfer some vETH at payment splitter contract address to bring VESPER_DEPLOYER balance < low level
+        // Transfer some vETH at revenue splitter contract address to bring VESPER_DEPLOYER balance < low level
         await veth.connect(signer)['deposit()']({ value: BN.from('8').mul(DECIMAL18).toString() })
         const vethAmount = BN.from('6').mul(DECIMAL18)
         await veth.connect(signer).transfer(psContract.address, vethAmount.toString())
@@ -624,7 +620,7 @@ describe('PaymentSplitter', function () {
         const ethBalanceBefore = await provider.getBalance(VESPER_DEPLOYER)
         expect(ethBalanceBefore).to.be.lt(BN.from(low), 'eth balance is above low value')
 
-        // Check vETH at payment splitter contract address
+        // Check vETH at revenue splitter contract address
         const psVethBalanceBefore = await veth.balanceOf(psContract.address)
         expect(psVethBalanceBefore).to.be.equal(BN.from(vethAmount), 'wrong veth amount')
         const vdVethBalanceBefore = await veth.balanceOf(VESPER_DEPLOYER)
@@ -644,7 +640,7 @@ describe('PaymentSplitter', function () {
         await hre.network.provider.send('hardhat_setBalance', [VESPER_DEPLOYER, '0x0'])
         await send(user6.address, VESPER_DEPLOYER, BN.from('10').mul(DECIMAL18))
 
-        // Transfer some vETH at payment splitter contract address to bring VESPER_DEPLOYER balance < low level
+        // Transfer some vETH at revenue splitter contract address to bring VESPER_DEPLOYER balance < low level
         await veth.connect(signer)['deposit()']({ value: BN.from('8').mul(DECIMAL18).toString() })
         const vethAmount = BN.from('6').mul(DECIMAL18)
         await veth.connect(signer).transfer(psContract.address, vethAmount.toString())
@@ -653,7 +649,7 @@ describe('PaymentSplitter', function () {
         const ethBalanceBefore = await provider.getBalance(VESPER_DEPLOYER)
         expect(ethBalanceBefore).to.be.lt(BN.from(low), 'eth balance is above low value')
 
-        // Check vETH at payment splitter contract address
+        // Check vETH at revenue splitter contract address
         const psVethBalanceBefore = await veth.balanceOf(psContract.address)
         expect(psVethBalanceBefore).to.be.equal(BN.from(vethAmount), 'wrong veth amount')
         const vdVethBalanceBefore = await veth.balanceOf(VESPER_DEPLOYER)
@@ -672,7 +668,7 @@ describe('PaymentSplitter', function () {
         await send(user6.address, VESPER_DEPLOYER, BN.from('10').mul(DECIMAL18))
         await send(user6.address, VESPER_DEPLOYER, BN.from('13').mul(DECIMAL18))
 
-        // Transfer some vETH at payment splitter contract address to bring VESPER_DEPLOYER balance < low level
+        // Transfer some vETH at revenue splitter contract address to bring VESPER_DEPLOYER balance < low level
         await veth.connect(signer)['deposit()']({ value: BN.from('22').mul(DECIMAL18).toString() })
         const vethAmount = BN.from('21').mul(DECIMAL18)
         await veth.connect(signer).transfer(psContract.address, vethAmount.toString())
@@ -687,7 +683,7 @@ describe('PaymentSplitter', function () {
         const totalVesperBefore = vesperEthBalanceBefore.add(vdVethBalanceBefore)
         expect(totalVesperBefore).to.be.lt(BN.from(low), 'eth balance is above low value')
 
-        // Check vETH at payment splitter contract address
+        // Check vETH at revenue splitter contract address
         const psVethBalanceBefore = await veth.balanceOf(psContract.address)
         expect(psVethBalanceBefore).to.be.equal(BN.from(vethAmount), 'wrong veth amount')
 
@@ -711,7 +707,7 @@ describe('PaymentSplitter', function () {
         await send(user6.address, VESPER_DEPLOYER, BN.from('10').mul(DECIMAL18))
         await send(user6.address, VESPER_DEPLOYER, BN.from('15').mul(DECIMAL18))
 
-        // Transfer some vETH at payment splitter contract address to bring VESPER_DEPLOYER balance < low level
+        // Transfer some vETH at revenue splitter contract address to bring VESPER_DEPLOYER balance < low level
         await veth.connect(signer)['deposit()']({ value: BN.from('23').mul(DECIMAL18).toString() })
         const vethAmount = BN.from('22').mul(DECIMAL18) // high level is 20 so transfer > 20
         await veth.connect(signer).transfer(psContract.address, vethAmount.toString())
@@ -720,7 +716,7 @@ describe('PaymentSplitter', function () {
         const ethBalanceBefore = await provider.getBalance(VESPER_DEPLOYER)
         expect(ethBalanceBefore).to.be.lt(BN.from(low), 'eth balance is above low value')
 
-        // Check vETH at payment splitter contract address
+        // Check vETH at revenue splitter contract address
         const psVethBalanceBefore = await veth.balanceOf(psContract.address)
         expect(psVethBalanceBefore).to.be.equal(BN.from(vethAmount), 'wrong veth amount')
 
@@ -747,7 +743,7 @@ describe('PaymentSplitter', function () {
         await send(user6.address, VESPER_DEPLOYER, BN.from('15').mul(DECIMAL18))
         await send(user6.address, VESPER_DEPLOYER, BN.from('15').mul(DECIMAL18))
 
-        // add some vETH at payment splitter contract address
+        // add some vETH at revenue splitter contract address
         await veth.connect(signer)['deposit()']({ value: BN.from('15').mul(DECIMAL18).toString() })
         const vethAmount = BN.from('11').mul(DECIMAL18)
         await veth.connect(signer).transfer(psContract.address, vethAmount.toString())
@@ -776,7 +772,7 @@ describe('PaymentSplitter', function () {
         controller = await deployContract('Controller')
         vusdc = await deployContract('VUSDC', [controller.address])
         await initStrategy(vusdc.address, 'AaveV2StrategyUSDC')
-        psContract = await deployContract('PaymentSplitter', [payees, shares])
+        psContract = await deployContract('RevenueSplitter', [payees, shares])
         await psContract.addVToken(vusdc.address, chainLinkUsdc2EthOracle)
         await psContract.toggleAutoTopUp()
       })
@@ -804,7 +800,7 @@ describe('PaymentSplitter', function () {
         expect(vesperVusdcBalance).to.be.equal(0, 'vUSDC vesper deployer balance is not 0')
         expect(await provider.getBalance(VESPER_DEPLOYER)).to.be.equal(0, 'eth balance is not 0')
 
-        // Check vUSDC at payment splitter contract address
+        // Check vUSDC at revenue splitter contract address
         const psVusdcBalanceBefore = await vusdc.balanceOf(psContract.address)
         expect(psVusdcBalanceBefore).to.be.equal(vusdcBal, 'wrong vusdc amount')
 
@@ -848,7 +844,7 @@ describe('PaymentSplitter', function () {
         await initStrategy(veth.address, 'AaveV2StrategyETH')
         await initStrategy(vwbtc.address, 'AaveV2StrategyWBTC')
         await initStrategy(vusdc.address, 'AaveV2StrategyUSDC')
-        psContract = await deployContract('PaymentSplitter', [payees, shares])
+        psContract = await deployContract('RevenueSplitter', [payees, shares])
       })
 
       it('should allow to add vToken by owner', async function () {
@@ -950,11 +946,8 @@ describe('PaymentSplitter', function () {
       })
 
       it('should not allow auto top-up toggle via non owner', async function () {
-        await expect(psContract.connect(user6).toggleAutoTopUp()).to.be.revertedWith(
-          'Ownable: caller is not the owner'
-        )
+        await expect(psContract.connect(user6).toggleAutoTopUp()).to.be.revertedWith('Ownable: caller is not the owner')
       })
-
 
       it('should toggle top-up status to true', async function () {
         expect(await psContract.isAutoTopUpEnabled()).to.be.equal(false)
