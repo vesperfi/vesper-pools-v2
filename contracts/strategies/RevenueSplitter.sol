@@ -13,19 +13,19 @@ import "../interfaces/vesper/IVesperPool.sol";
 import "./../Owned.sol";
 
 /**
- * @title PaymentSplitter
+ * @title RevenueSplitter
  * @dev This contract allows to split ERC20 and Ether tokens among a group of accounts. The sender does not need to be aware
- * that the token(s) (payment) will be split in this way, since it is handled transparently by the contract.
+ * that the token(s) (revenue) will be split in this way, since it is handled transparently by the contract.
  *
  * The split can be in equal parts or in any other arbitrary proportion. The way this is specified is by assigning each
- * account to a number of shares. Of all the payment(s) that this contract receives, each account will then be able to claim
+ * account to a number of shares. Of all the fund this contract receives, each account will then be able to claim
  * an amount proportional to the percentage of total shares they were assigned.
  *
- * `PaymentSplitter` follows a _pull payment_ model. This means that payments are not automatically forwarded to the
+ * `RevenueSplitter` follows a pull revenue model. This means that revenue is not automatically forwarded to the
  * accounts but kept in this contract, and the actual transfer is triggered as a separate step by calling the {release} or {releaseEther}
  * function.
  */
-contract PaymentSplitter is Ownable {
+contract RevenueSplitter is Ownable {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
@@ -53,10 +53,11 @@ contract PaymentSplitter is Ownable {
     uint256 public constant LOW = 10e18; // 10 Ether
     address internal constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     address internal constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
-    bool public allowAutoTopUp;
+    bool public isAutoTopUpEnabled;
+    bool public isTopUpEnabled;
 
     /**
-     * @dev Creates an instance of `PaymentSplitter` where each account in `_payees` is assigned token(s) at
+     * @dev Creates an instance of `RevenueSplitter` where each account in `_payees` is assigned token(s) at
      * the matching position in the `_share` array.
      *
      * All addresses in `payees` must be non-zero. Both arrays must have the same non-zero length, and there must be no
@@ -122,7 +123,7 @@ contract PaymentSplitter is Ownable {
      */
     function release(address _payee, address _asset) external {
         require(share[_payee] > 0, "payee-does-not-have-share");
-        if (allowAutoTopUp) {
+        if (isAutoTopUpEnabled) {
             _topUp();
         }
         uint256 totalReceived = IERC20(_asset).balanceOf(address(this)).add(totalReleased[_asset]);
@@ -146,15 +147,34 @@ contract PaymentSplitter is Ownable {
     }
 
     /**
-     * @dev Set boolean to allow top-up as part of release operation.
-     * @param _allowAutoTopUp - boolean flag for auto top-up.
+     * @notice Toggle auto top-up
+     * @dev Toggle auto top-up to true will enable top-up too.
      */
-    function setAllowAutoTopUp(bool _allowAutoTopUp) external onlyOwner {
-        allowAutoTopUp = _allowAutoTopUp;
+    function toggleAutoTopUp() external onlyOwner {
+        if (isAutoTopUpEnabled) {
+            isAutoTopUpEnabled = false;
+        } else {
+            isAutoTopUpEnabled = true;
+            isTopUpEnabled = true;
+        }
+    }
+
+    /**
+     * @notice Toggle top-up status
+     * @dev Toggle top-up status to false will disable auto top-up too.
+     */
+    function toggleTopUpStatus() external onlyOwner {
+        if (isTopUpEnabled) {
+            isTopUpEnabled = false;
+            isAutoTopUpEnabled = false;
+        } else {
+            isTopUpEnabled = true;
+        }
     }
 
     /// @notice top-up Vesper deployer address
     function topUp() external {
+        require(isTopUpEnabled, "top-up-is-disabled");
         _topUp();
     }
 

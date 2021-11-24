@@ -1,8 +1,8 @@
-name: Payment Splitter
+name: Revenue Splitter
 on: [pull_request]
 
 jobs:
-  payment-splitter-test:
+  revenue-splitter-test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -18,7 +18,7 @@ jobs:
           node-version: ${{ matrix.node }}
       - name: Run npm install with node v${{ matrix.node }}
         run: npm install
-      - name: Running Payment splitter tests
+      - name: Running Revenue splitter tests
         env:
           NODE_URL: ${{env.NODE_URL}}
-        run: npm test "test/payment-splitter.js"
+        run: npm test "test/revenue-splitter.js"
