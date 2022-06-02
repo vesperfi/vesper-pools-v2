@@ -1,4 +1,4 @@
-# Vesper Pools
+# Vesper Pools V2
 
 Please read and get familiar with [Vesper](https://docs.vesper.finance/). This repository contains set of smart contracts and test cases of Vesper pools.
 
@@ -7,8 +7,8 @@ Please read and get familiar with [Vesper](https://docs.vesper.finance/). This r
 1. Install
 
    ```sh
-   git clone --recursive https://github.com/vesperfi/vesper-pools.git
-   cd vesper-pools
+   git clone --recursive https://github.com/vesperfi/vesper-pools-v2.git
+   cd vesper-pools-v2
    npm install
    npm run compile
    ```
