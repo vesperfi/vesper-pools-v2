@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: BSD 3-Clause
+// SPDX-License-Identifier: BSD-3-Clause
 
 // From https://github.com/compound-finance/compound-protocol/blob/master/contracts/Timelock.sol and modified as needed.
 
@@ -46,7 +46,6 @@ contract Timelock {
     );
 
     uint256 public constant GRACE_PERIOD = 14 days;
-    uint256 public constant MINIMUM_DELAY = 2 days;
     uint256 public constant MAXIMUM_DELAY = 30 days;
 
     address public admin;
@@ -57,7 +56,6 @@ contract Timelock {
 
     constructor(address admin_, uint256 delay_) public {
         require(admin_ != address(0), "Timelock::constructor: Admin must be valid address");
-        require(delay_ >= MINIMUM_DELAY, "Timelock::constructor: Delay must exceed minimum delay.");
         require(
             delay_ <= MAXIMUM_DELAY,
             "Timelock::constructor: Delay must not exceed maximum delay."
@@ -72,7 +70,6 @@ contract Timelock {
 
     function setDelay(uint256 delay_) public {
         require(msg.sender == address(this), "Timelock::setDelay: Call must come from Timelock.");
-        require(delay_ >= MINIMUM_DELAY, "Timelock::setDelay: Delay must exceed minimum delay.");
         require(
             delay_ <= MAXIMUM_DELAY,
             "Timelock::setDelay: Delay must not exceed maximum delay."

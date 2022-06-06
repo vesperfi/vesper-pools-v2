@@ -29,4 +29,13 @@ async function swapEthForToken(ethAmount, toToken, caller, receiver) {
   return tokenBalance
 }
 
-module.exports = {swapEthForToken}
+async function getEthQuote(ethAmount, toToken) {
+  const uni = await ethers.getContractAt('IUniswapRouterTest', SUSHI_ROUTER)
+  const path = [NATIVE_TOKEN, toToken]
+  const amountIn = BigNumber.from(ethAmount).mul(DECIMAL)
+  const retAmount = (await uni.getAmountsOut(amountIn, path))[1]
+  expect(retAmount).to.be.gt('0', 'Token balance is not correct')
+  return retAmount
+}
+
+module.exports = {swapEthForToken, getEthQuote}

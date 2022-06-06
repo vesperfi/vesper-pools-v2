@@ -1,5 +1,5 @@
 {
-  "version": "2.0.9",
+  "version": "2.0.11",
   "networks": {
     "mainnet": {
       "poolList": "0xd559bA46da65959540405C9c73f51c76c62EC119",
@@ -7,7 +7,7 @@
       "collateralManagerV2": "0x6846470150e5273C61f16c5FFB94Fff5Fed259DF",
       "controller": "0xa4F1671d3Aee73C05b552d57f2d16d3cfcBd0217",
       "vsp": "0x1b40183EFB4Dd766f11bDa7A7c3AD8982e998421",
-      "revenueSplitter": "0xAdB5ef0CA9029b340bCCDEf005aef442C7F91C96",
+      "revenueSplitter": "0x80d426D65D926dF121dc58C18D043B73e998CE2b",
       "governorAlpha": "0x59e06eA66e885580cc1D124775A543B59CAfB3FF",
       "timelock": "0x4279352DdFa6cfBcAF397B8E93E421c012ad478e",
       "vBetaETH": {
@@ -74,7 +74,8 @@
         "poolRewards": "0xd59996055b5E0d154f2851A030E207E0dF0343B0",
         "strategy": {
           "aave": "0x3a51F72104fd7c9257730C437B250E99516202Fc",
-          "compound": "0xbF84B97BEABc953a7a2ad630940065b69D24c912"
+          "compound": "0xbF84B97BEABc953a7a2ad630940065b69D24c912",
+          "vesperV3": "0x96b5B99160769D5F21Ce63F799D48a40306F868e"
         }
       },
       "VVSP": {
