@@ -61,4 +61,18 @@ interface IVesperPoolV3 is IERC20 {
     function poolRewards() external view returns (address);
 
     function getStrategies() external view returns (address[] memory);
+
+    function strategy(address _strategy)
+        external
+        view
+        returns (
+            bool _active,
+            uint256 _interestFee,
+            uint256 _debtRate,
+            uint256 _lastRebalance,
+            uint256 _totalDebt,
+            uint256 _totalLoss,
+            uint256 _totalProfit,
+            uint256 _debtRatio
+        );
 }

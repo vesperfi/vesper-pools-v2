@@ -1,5 +1,5 @@
 {
-  "version": "2.0.9",
+  "version": "2.0.10",
   "networks": {
     "mainnet": {
       "poolList": "0xd559bA46da65959540405C9c73f51c76c62EC119",
@@ -74,7 +74,8 @@
         "poolRewards": "0xd59996055b5E0d154f2851A030E207E0dF0343B0",
         "strategy": {
           "aave": "0x3a51F72104fd7c9257730C437B250E99516202Fc",
-          "compound": "0xbF84B97BEABc953a7a2ad630940065b69D24c912"
+          "compound": "0xbF84B97BEABc953a7a2ad630940065b69D24c912",
+          "vesperV3": "0xFbB2c2Cf693B9F33703d1556785e58C5a50F8603"
         }
       },
       "VVSP": {

@@ -3,13 +3,13 @@
 const hre = require('hardhat')
 const provider = hre.waffle.provider
 const swapper = require('../utils/tokenSwapper')
-const {ethers} = require('hardhat')
-const {defaultAbiCoder} = ethers.utils
+const { ethers } = require('hardhat')
+const { defaultAbiCoder } = ethers.utils
 const poolOps = require('../utils/poolOps')
-const {getPermitData} = require('../utils/signHelper')
-const {MNEMONIC} = require('../utils/testkey')
-const {expect} = require('chai')
-const {BigNumber: BN} = require('ethers')
+const { getPermitData } = require('../utils/signHelper')
+const { MNEMONIC } = require('../utils/testkey')
+const { expect } = require('chai')
+const { BigNumber: BN } = require('ethers')
 const DECIMAL18 = BN.from('1000000000000000000')
 
 /* eslint-disable mocha/no-setup-in-describe */
@@ -60,12 +60,12 @@ async function shouldBehaveLikePool(poolName, collateralName, pTokenName) {
   }
 
   async function timeTravel(seconds = 6 * 60 * 60, blocks = 25) {
-    const timeTravelFn = async function() {
+    const timeTravelFn = async function () {
       await provider.send('evm_increaseTime', [seconds])
       await provider.send('evm_mine')
-    }  
+    }
     await swapManager['updateOracles()']()
-    const blockMineFn = async function() {
+    const blockMineFn = async function () {
       for (let i = 0; i < blocks; i++) {
         await provider.send('evm_mine')
       }
@@ -77,7 +77,7 @@ async function shouldBehaveLikePool(poolName, collateralName, pTokenName) {
     beforeEach(async function () {
       // This setup helps in not typing 'this' all the time
       accounts = await ethers.getSigners()
-      ;[user1, user2, user3] = accounts
+        ;[user1, user2, user3] = accounts
       pool = this.pool
       strategy = this.strategy
       controller = this.controller
@@ -95,7 +95,7 @@ async function shouldBehaveLikePool(poolName, collateralName, pTokenName) {
     describe(`Gasless approval for ${poolName} token`, function () {
       it('Should allow gasless approval using permit()', async function () {
         const amount = DECIMAL18.toString()
-        const {owner, deadline, sign} = await getPermitData(pool, amount, MNEMONIC, user1.address)
+        const { owner, deadline, sign } = await getPermitData(pool, amount, MNEMONIC, user1.address)
         await pool.permit(owner, user1.address, amount, deadline, sign.v, sign.r, sign.s)
         const allowance = await pool.allowance(owner, user1.address)
         expect(allowance).to.be.equal(amount, `${poolName} allowance is wrong`)
@@ -124,8 +124,8 @@ async function shouldBehaveLikePool(poolName, collateralName, pTokenName) {
         await executeIfExist(providerToken.exchangeRateCurrent)
         await poolOps.rebalance(strategy, accounts)
         await executeIfExist(providerToken.exchangeRateCurrent)
-        await Promise.all([pool.tokenLocked(), pool.totalSupply(), pool.totalValue(), 
-          pool.balanceOf(user2.address)]).then(
+        await Promise.all([pool.tokenLocked(), pool.totalSupply(), pool.totalValue(),
+        pool.balanceOf(user2.address)]).then(
           function ([tokenLocked, totalSupply, totalValue, vPoolBalance]) {
             expect(tokenLocked).to.be.gte(depositAmountAdj, `${collateralName} locked is wrong`)
             expect(totalSupply).to.be.equal(depositAmount18, `Total supply of ${poolName} is wrong`)
@@ -192,15 +192,6 @@ async function shouldBehaveLikePool(poolName, collateralName, pTokenName) {
         await poolOps.rebalance(strategy, accounts)
         const collateralBalanceBefore = await collateralToken.balanceOf(user1.address)
         const withdrawAmount = (await pool.balanceOf(user1.address)).div(BN.from(2))
-        await pool.connect(user1).withdraw(withdrawAmount)
-        const collateralBalance = await collateralToken.balanceOf(user1.address)
-        expect(collateralBalance).to.be.gt(collateralBalanceBefore, 'Withdraw failed')
-      })
-
-      it(`Should withdraw very small ${collateralName} after rebalance`, async function () {
-        await poolOps.rebalance(strategy, accounts)
-        const collateralBalanceBefore = await collateralToken.balanceOf(user1.address)
-        const withdrawAmount = '10000000000000000'
         await pool.connect(user1).withdraw(withdrawAmount)
         const collateralBalance = await collateralToken.balanceOf(user1.address)
         expect(collateralBalance).to.be.gt(collateralBalanceBefore, 'Withdraw failed')
@@ -296,7 +287,7 @@ async function shouldBehaveLikePool(poolName, collateralName, pTokenName) {
         await executeIfExist(providerToken.rebalance)
         await deposit(200, user3)
         await poolOps.timeTravel(20 * 24 * 60 * 60, 50)
-       
+
         await executeIfExist(providerToken.exchangeRateCurrent)
         await executeIfExist(providerToken.rebalance)
         if (strategyType === 'vesperv3') await poolOps.simulateV3Profit(strategy, accounts)
@@ -449,4 +440,4 @@ async function shouldBehaveLikePool(poolName, collateralName, pTokenName) {
   })
 }
 
-module.exports = {shouldBehaveLikePool}
+module.exports = { shouldBehaveLikePool }

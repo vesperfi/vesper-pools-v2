@@ -200,9 +200,13 @@ abstract contract CompoundStrategy is Strategy {
     }
 
     function _calculatePendingFee() internal view returns (uint256) {
+        uint256 _exchangeRateStoredLatest = cToken.exchangeRateStored();
+        if (_exchangeRateStoredLatest <= exchangeRateStored) {
+            return pendingFee;
+        }
+
         uint256 interest =
-            cToken
-                .exchangeRateStored()
+            _exchangeRateStoredLatest
                 .sub(exchangeRateStored)
                 .mul(cToken.balanceOf(address(this)))
                 .div(1e18);

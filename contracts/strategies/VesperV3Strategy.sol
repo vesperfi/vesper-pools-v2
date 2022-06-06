@@ -178,7 +178,7 @@ abstract contract VesperV3Strategy is Strategy {
         uint256 _maxShares = vToken.balanceOf(address(this));
 
         if (_shares != 0) {
-            vToken.withdraw(_shares);
+            vToken.whitelistedWithdraw(_shares);
 
             require(
                 vToken.balanceOf(address(this)) == _maxShares.sub(_shares),
@@ -193,14 +193,16 @@ abstract contract VesperV3Strategy is Strategy {
         collateralToken.safeTransfer(pool, collateralToken.balanceOf(address(this)));
     }
 
+    /// @dev V3 pools uses pricePerShare for all internal calculations, hence using pricePerShare here.
     function _convertToCollateral(uint256 _vTokenAmount) internal view returns (uint256) {
-        uint256 _totalSupply = vToken.totalSupply();
-        // avoids division by zero error when pool is empty
-        return (_totalSupply != 0) ? vToken.totalValue().mul(_vTokenAmount).div(_totalSupply) : 0;
+        return _vTokenAmount.mul(vToken.pricePerShare()).div(1e18);
     }
 
+    /// @dev V3 pools uses pricePerShare for all internal calculations, hence using pricePerShare here.
     function _convertToShares(uint256 _collateralAmount) internal view returns (uint256) {
-        return _collateralAmount.mul(vToken.totalSupply()).div(vToken.totalValue());
+        uint256 _pricePerShare = vToken.pricePerShare();
+        uint256 _shares = _collateralAmount.mul(1e18).div(_pricePerShare);
+        return _collateralAmount > (_shares.mul(_pricePerShare).div(1e18)) ? _shares + 1 : _shares;
     }
 
     /**

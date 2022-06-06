@@ -18,6 +18,7 @@ module.exports = {
       saveDeployments: true,
     },
     hardhat: {
+      initialBaseFeePerGas: 0,
       forking: {
         url: process.env.NODE_URL,
         blockNumber: process.env.BLOCK_NUMBER ? parseInt(process.env.BLOCK_NUMBER) : undefined,
@@ -28,6 +29,7 @@ module.exports = {
       url: process.env.NODE_URL,
       chainId: 1,
       gas: 6700000,
+      // accounts: {mnemonic: process.env.MNEMONIC},
     }
   },
   paths: {
